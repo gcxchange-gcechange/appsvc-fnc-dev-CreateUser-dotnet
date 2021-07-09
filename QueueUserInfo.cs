@@ -35,7 +35,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             string JobTitle = req.Query["JobTitle"];
             string Department = req.Query["Department"];
 
-
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
             Email = Email ?? data?.Email;

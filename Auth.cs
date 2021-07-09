@@ -11,9 +11,9 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
             var scopes = new string[] { "https://graph.microsoft.com/.default" };
-            var clientSecret = "m2.Oy7ws71T299-GqoB5lO~3Bj-V.6H_tH"; // Or some other secure place.
-            var clientId = "4bea31f8-4b45-4faa-bc60-e5bffb898a37"; // Or some other secure place.
-            var tenantid = "ddbd240e-11ba-47a6-abeb-e1a6be847a17";
+            var clientSecret = config['clientSecret'];
+            var clientId = config['clientId'];
+            var tenantid = config['tenantid'];
             
             IConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplicationBuilder
             .Create(clientId)

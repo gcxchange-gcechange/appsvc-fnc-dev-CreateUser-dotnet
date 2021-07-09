@@ -18,85 +18,34 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 {
     class SendMail
     {
-        public async void send(GraphServiceClient graphServiceClient, ILogger log, List<string> Redeem, string email, string type)
+        public async void send(GraphServiceClient graphServiceClient, ILogger log, List<string> Redeem, string email, string UserSender)
         {
             var submitMsg = new Message();
-            switch (type)
+            submitMsg = new Message
             {
-                case "UserCreate":
-                    submitMsg = new Message
+                Subject = "Welcome",
+                Body = new ItemBody
+                {
+                    ContentType = BodyType.Html,
+                    Content = $"<a href='{Redeem[1]}'>Click here </a>"
+                },
+                ToRecipients = new List<Recipient>()
+                {
+                    new Recipient
                     {
-                        Subject = "Welcome",
-                        Body = new ItemBody
+                        EmailAddress = new EmailAddress
                         {
-                            ContentType = BodyType.Html,
-                            Content = $"<a href='{Redeem[1]}'>Click here </a>"
-                        },
-                        ToRecipients = new List<Recipient>()
-                    {
-                        new Recipient
-                        {
-                            EmailAddress = new EmailAddress
-                            {
-                                Address = $"{email}"
-                            }
+                            Address = $"{email}"
                         }
-                    },
-                    };
-                    Console.WriteLine("Case 1");
-                    break;
-                case "ErrorDepart":
-                     submitMsg = new Message
-                     {
-                         Subject = "Error department not allow",
-                         Body = new ItemBody
-                         {
-                             ContentType = BodyType.Html,
-                             Content = $"Depart not in list, pls reach out to <a href='{Redeem[1]}'>HelpDesk </a>"
-                         },
-                         ToRecipients = new List<Recipient>()
-                    {
-                        new Recipient
-                        {
-                            EmailAddress = new EmailAddress
-                            {
-                                Address = $"{email}"
-                            }
-                        }
-                    },
-                     };
-                    Console.WriteLine("Case 2");
-                    break;
-                default:
-                    submitMsg = new Message
-                    {
-                        Subject = "Something went wrong",
-                        Body = new ItemBody
-                        {
-                            ContentType = BodyType.Html,
-                            Content = $"Something somewhere happen. Please contact our helpdesk"
-                        },
-                        ToRecipients = new List<Recipient>()
-                    {
-                        new Recipient
-                        {
-                            EmailAddress = new EmailAddress
-                            {
-                                Address = $"{email}"
-                            }
-                        }
-                    },
-                    };
-                    Console.WriteLine("Default case");
-                    break;
-            }
-            
+                    }
+                },
+            };
             try
             {
-                await graphServiceClient.Users["6d6e092d-e8c1-4c97-b899-8a2626b0fccc"]
-                   .SendMail(submitMsg)
-                   .Request()
-                   .PostAsync();
+                await graphServiceClient.Users[UserSender]
+                      .SendMail(submitMsg)
+                      .Request()
+                      .PostAsync();
                 log.LogInformation("User mail successfully");
 
             }

@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
@@ -23,8 +24,8 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             .Build();
 
             log.LogInformation("C# HTTP trigger function processed a request.");
-            string welcomeGroup = config['welcomeGroup'];
-            string UserSender = config['userSender'];
+            string welcomeGroup = config["welcomeGroup"];
+            string UserSender = config["userSender"];
             string Email = user.email;
             string FirstName = user.firstname;
             string LastName = user.lastname;
@@ -45,20 +46,14 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 var userupdate = await updateUser(graphAPIAuth, createUser, JobTitle, Email, Department, log);
                 if (userupdate)
                 {
-                    try
-                    {
-                    var addWelcomeGroup = addUserWelcomeGroup(graphAPIAuth, createUser, welcomeGroup, log);
-                    }
-                    catch(Exception ex)
-                    {
-                        throw new SystemException($"Error can't add user to the welcome group: {ex}");
-                    }
-                    if (addUserWelcomeGroup)
+                    var addWelcomeGroup = await addUserWelcomeGroup(graphAPIAuth, createUser, welcomeGroup, log);
+           
+                    if (addWelcomeGroup)
                     {
                         SendMail sendmail = new SendMail();
                         try
                         {
-                            sendmail.send(graphAPIAuth, log, createUser, Email, UserSender, "UserCreate");
+                            sendmail.send(graphAPIAuth, log, createUser, Email, UserSender);
                         }
                         catch (Exception ex)
                         {
@@ -141,10 +136,10 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             {
                 var directoryObject = new DirectoryObject
                     {
-	                    Id = userID
+	                    Id = userID[1]
                     };
 
-                await graphClient.Groups[welcomeGroup].Members.References
+                await graphServiceClient.Groups[welcomeGroup].Members.References
 	                .Request()
 	                .AddAsync(directoryObject);
                 log.LogInformation("User add to welcome group successfully");

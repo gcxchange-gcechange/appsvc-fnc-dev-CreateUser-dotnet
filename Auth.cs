@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
 using System.Net.Http.Headers;
@@ -9,12 +10,20 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
     {
         public GraphServiceClient graphAuth(ILogger log)
         {
+
+            IConfiguration config = new ConfigurationBuilder()
+
+           .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+           .AddEnvironmentVariables()
+           .Build();
+
             log.LogInformation("C# HTTP trigger function processed a request.");
             var scopes = new string[] { "https://graph.microsoft.com/.default" };
-            var clientSecret = config['clientSecret'];
-            var clientId = config['clientId'];
-            var tenantid = config['tenantid'];
-            
+            var clientSecret = config["clientSecret"];
+            var clientId = config["clientId"];
+            var tenantid = config["tenantid"];
+
+
             IConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplicationBuilder
             .Create(clientId)
             .WithTenantId(tenantid)

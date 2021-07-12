@@ -43,7 +43,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
             else
             {
-                var userupdate = await updateUser(graphAPIAuth, createUser, JobTitle, Email, Department, log);
+                var userupdate = await updateUser(graphAPIAuth, createUser, JobTitle, Email, Department, FirstName, LastName, log);
                 if (userupdate)
                 {
                     var addWelcomeGroup = await addUserWelcomeGroup(graphAPIAuth, createUser, welcomeGroup, log);
@@ -102,18 +102,19 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             return InviteInfo;
         }
 
-        public static async Task<bool> updateUser(GraphServiceClient graphServiceClient, List<string> userID, string jobTitle, string email, string department, ILogger log)
+        public static async Task<bool> updateUser(GraphServiceClient graphServiceClient, List<string> userID, string jobTitle, string email, string department, string firstName, string lastName, ILogger log)
         {
             bool result = false;
             try
             {
                 var guestUser = new User
                 {
+                    GivenName = firstName,
+                    Surname = lastName,
                     JobTitle = jobTitle,
                     Mail = email,
                     Department = department,
                     UserType = "Member"
-
                 };
 
                 await graphServiceClient.Users[userID[1]].Request().UpdateAsync(guestUser);
@@ -153,6 +154,5 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
             return result;
         }
-
     }
 }

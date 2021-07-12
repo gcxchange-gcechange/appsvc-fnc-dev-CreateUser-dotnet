@@ -9,18 +9,14 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage;
-using System.Configuration;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Graph;
-using System.Collections.Generic;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
     public static class QueueUserInfo
     {
         [FunctionName("QueueUserInfo")]
-        public static async Task<IActionResult> Run(
-    [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req, ILogger log)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req, ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
             IConfiguration config = new ConfigurationBuilder()

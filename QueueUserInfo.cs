@@ -43,7 +43,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
             if (String.IsNullOrEmpty(EmailCloud) || String.IsNullOrEmpty(EmailWork) || String.IsNullOrEmpty(FirstName) || String.IsNullOrEmpty(LastName))
             {
-                ResponsQueue = "Missing field";
+                ResponsQueue = $"Missing field: {EmailCloud} - {EmailWork} - {FirstName} - {LastName}";
                 return new BadRequestObjectResult(ResponsQueue);
             }
             else
@@ -54,7 +54,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
                 CloudQueue queue = queueClient.GetQueueReference("userrequestaccess");
               
-                ResponsQueue = InsertMessageAsync(queue, EmailCloud, EmailWork, FirstName, LastName, JobTitle, Department,  log).GetAwaiter().GetResult();
+                ResponsQueue = InsertMessageAsync(queue, EmailCloud, EmailWork, FirstName, LastName, Department,  log).GetAwaiter().GetResult();
 
                 if (String.Equals(ResponsQueue, "Queue create"))
                 {
@@ -70,7 +70,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
         }
        
-        static async Task<string> InsertMessageAsync(CloudQueue theQueue, string emailcloud, string emailwork, string firstname, string lastname, string jobtitle, string department, ILogger log)
+        static async Task<string> InsertMessageAsync(CloudQueue theQueue, string emailcloud, string emailwork, string firstname, string lastname, string department, ILogger log)
         {
             string response = "";
             UserInfo info = new UserInfo();

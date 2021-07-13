@@ -18,6 +18,6 @@ clientId = App configuration client id<br>
 secretId = App configuration client secret<br>
 tenantId = Tenant id<br>
 welcomeGroup = Id of the group<br>
-domain = domain name of the tenant<br>
+redirectLink = Link that redirect the user when click on the link (Teams for us)<br>
 userSender = id of the user that send the email<br>
 

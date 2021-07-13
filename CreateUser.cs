@@ -26,16 +26,16 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             log.LogInformation("C# HTTP trigger function processed a request.");
             string welcomeGroup = config["welcomeGroup"];
             string UserSender = config["userSender"];
+            string redirectLink = config["redirectLink"];
             string EmailWork = user.emailwork;
             string EmailCloud = user.emailcloud;
             string FirstName = user.firstname;
             string LastName = user.lastname;
             string Department = user.department;
-            var domain = config["domain"];
             Auth auth = new Auth();
             var graphAPIAuth = auth.graphAuth(log);
 
-            var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, domain, log);
+            var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, redirectLink, log);
 
             if (String.Equals(createUser[0], "Invitation error"))
             {
@@ -74,7 +74,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
         }
 
-        public static async Task<List<string>> UserCreation(GraphServiceClient graphServiceClient, string emailcloud, string firstname, string lastname, string domain, ILogger log)
+        public static async Task<List<string>> UserCreation(GraphServiceClient graphServiceClient, string emailcloud, string firstname, string lastname, string redirectLink, ILogger log)
         {
             List<string> InviteInfo = new List<string>();
 
@@ -85,7 +85,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                         SendInvitationMessage = false,
                         InvitedUserEmailAddress = emailcloud,
                         InvitedUserType = "Member",
-                        InviteRedirectUrl = $"https://{domain}.sharepoint.com",
+                        InviteRedirectUrl = redirectLink,
                         InvitedUserDisplayName = $"{firstname} {lastname}",
                     };
 

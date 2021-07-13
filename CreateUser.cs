@@ -26,16 +26,16 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             log.LogInformation("C# HTTP trigger function processed a request.");
             string welcomeGroup = config["welcomeGroup"];
             string UserSender = config["userSender"];
-            string Email = user.email;
+            string EmailWork = user.emailwork;
+            string EmailCloud = user.emailcloud;
             string FirstName = user.firstname;
             string LastName = user.lastname;
-            string JobTitle = user.jobtitle;
             string Department = user.department;
             var domain = config["domain"];
             Auth auth = new Auth();
             var graphAPIAuth = auth.graphAuth(log);
 
-            var createUser = await UserCreation(graphAPIAuth, Email, FirstName, LastName, domain, log);
+            var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, domain, log);
 
             if (String.Equals(createUser[0], "Invitation error"))
             {
@@ -43,7 +43,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
             else
             {
-                var userupdate = await updateUser(graphAPIAuth, createUser, JobTitle, Email, Department, FirstName, LastName, log);
+                var userupdate = await updateUser(graphAPIAuth, createUser, Department, FirstName, LastName, log);
                 if (userupdate)
                 {
                     var addWelcomeGroup = await addUserWelcomeGroup(graphAPIAuth, createUser, welcomeGroup, log);
@@ -53,7 +53,9 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                         SendMail sendmail = new SendMail();
                         try
                         {
-                            sendmail.send(graphAPIAuth, log, createUser, Email, UserSender);
+                            string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
+                      
+                            sendmail.send(graphAPIAuth, log, createUser, EmailUser, UserSender);
                         }
                         catch (Exception ex)
                         {
@@ -72,37 +74,38 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
         }
 
-        public static async Task<List<string>> UserCreation(GraphServiceClient graphServiceClient, string email, string firstname, string lastname, string domain, ILogger log)
+        public static async Task<List<string>> UserCreation(GraphServiceClient graphServiceClient, string emailcloud, string firstname, string lastname, string domain, ILogger log)
         {
             List<string> InviteInfo = new List<string>();
 
-            try
-            {
-                var invitation = new Invitation
+                try
                 {
-                    SendInvitationMessage = false,
-                    InvitedUserEmailAddress = email,
-                    InvitedUserType = "Member",
-                    InviteRedirectUrl = $"https://{domain}.sharepoint.com",
-                    InvitedUserDisplayName = $"{firstname} {lastname}",
+                    var invitation = new Invitation
+                    {
+                        SendInvitationMessage = false,
+                        InvitedUserEmailAddress = emailcloud,
+                        InvitedUserType = "Member",
+                        InviteRedirectUrl = $"https://{domain}.sharepoint.com",
+                        InvitedUserDisplayName = $"{firstname} {lastname}",
+                    };
+
+                    var userInvite = await graphServiceClient.Invitations.Request().AddAsync(invitation);
+                    InviteInfo.Add("Invitation success");
+                    InviteInfo.Add(userInvite.InvitedUser.Id);
+                    InviteInfo.Add(userInvite.InviteRedeemUrl);
+
+                    log.LogInformation("User invite successfully");
+                }
+                catch (ServiceException ex)
+                {
+                    log.LogInformation($"Error Creating User Invite : {ex.Message}");
+                    InviteInfo.Add("Invitation error");
                 };
 
-                var userInvite = await graphServiceClient.Invitations.Request().AddAsync(invitation);
-                InviteInfo.Add("Invitation success");
-                InviteInfo.Add(userInvite.InvitedUser.Id);
-                InviteInfo.Add(userInvite.InviteRedeemUrl);
-
-                log.LogInformation("User invite successfully");
-            }
-            catch (ServiceException ex)
-            {
-                log.LogInformation($"Error Creating User Invite : {ex.Message}");
-                InviteInfo.Add("Invitation error");
-            };
             return InviteInfo;
         }
 
-        public static async Task<bool> updateUser(GraphServiceClient graphServiceClient, List<string> userID, string jobTitle, string email, string department, string firstName, string lastName, ILogger log)
+        public static async Task<bool> updateUser(GraphServiceClient graphServiceClient, List<string> userID, string department, string firstName, string lastName, ILogger log)
         {
             bool result = false;
             try
@@ -111,8 +114,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 {
                     GivenName = firstName,
                     Surname = lastName,
-                    JobTitle = jobTitle,
-                    Mail = email,
                     Department = department,
                     UserType = "Member"
                 };

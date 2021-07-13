@@ -25,23 +25,23 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             .AddEnvironmentVariables()
             .Build();
 
-            string Email = req.Query["Email"];
+            string EmailWork = req.Query["EmailWork"];
+            string EmailCloud = req.Query["EmailCloud"];
             string FirstName = req.Query["FirstName"];
             string LastName = req.Query["LastName"];
-            string JobTitle = req.Query["JobTitle"];
             string Department = req.Query["Department"];
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
-            Email = Email ?? data?.Email;
+            EmailWork = EmailWork ?? data?.EmailWork;
+            EmailCloud = EmailCloud ?? data?.EmailCloud;
             FirstName = FirstName ?? data?.FirstName;
             LastName = LastName ?? data?.LastName;
-            JobTitle = JobTitle ?? data?.JobTitle;
             Department = Department ?? data?.Department;
 
             string ResponsQueue = "";
 
-            if (String.IsNullOrEmpty(Email) || String.IsNullOrEmpty(FirstName) || String.IsNullOrEmpty(LastName))
+            if (String.IsNullOrEmpty(EmailCloud) || String.IsNullOrEmpty(EmailWork) || String.IsNullOrEmpty(FirstName) || String.IsNullOrEmpty(LastName))
             {
                 ResponsQueue = "Missing field";
                 return new BadRequestObjectResult(ResponsQueue);
@@ -49,12 +49,12 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             else
             {
                 var connectionString = config["AzureWebJobsStorage"];
-                log.LogInformation($"Queue for {Email}");
+                log.LogInformation($"Queue for {EmailCloud}");
                 CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
                 CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
                 CloudQueue queue = queueClient.GetQueueReference("userrequestaccess");
               
-                ResponsQueue = InsertMessageAsync(queue,  Email, FirstName, LastName, JobTitle, Department,  log).GetAwaiter().GetResult();
+                ResponsQueue = InsertMessageAsync(queue, EmailCloud, EmailWork, FirstName, LastName, JobTitle, Department,  log).GetAwaiter().GetResult();
 
                 if (String.Equals(ResponsQueue, "Queue create"))
                 {
@@ -70,15 +70,15 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
         }
        
-        static async Task<string> InsertMessageAsync(CloudQueue theQueue, string email, string firstname, string lastname, string jobtitle, string department, ILogger log)
+        static async Task<string> InsertMessageAsync(CloudQueue theQueue, string emailcloud, string emailwork, string firstname, string lastname, string jobtitle, string department, ILogger log)
         {
             string response = "";
             UserInfo info = new UserInfo();
 
-            info.email = email;
+            info.emailcloud = emailcloud;
+            info.emailwork = emailwork;
             info.firstname = firstname;
             info.lastname = lastname;
-            info.jobtitle = jobtitle;
             info.department = department;
 
             string serializedMessage = JsonConvert.SerializeObject(info);

@@ -55,7 +55,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                         {
                             string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
                       
-                            sendmail.send(graphAPIAuth, log, createUser, EmailUser, UserSender);
+                            sendmail.send(graphAPIAuth, log, createUser, EmailUser, UserSender, FirstName, LastName);
                         }
                         catch (Exception ex)
                         {
@@ -94,7 +94,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                     InviteInfo.Add(userInvite.InvitedUser.Id);
                     InviteInfo.Add(userInvite.InviteRedeemUrl);
 
-                    log.LogInformation("User invite successfully");
+                    log.LogInformation(@"User invite successfully - {userInvite.InvitedUser.Id}");
                 }
                 catch (ServiceException ex)
                 {

@@ -112,8 +112,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             {
                 var guestUser = new User
                 {
-                    GivenName = firstName,
-                    Surname = lastName,
                     Department = department,
                     UserType = "Member"
                 };

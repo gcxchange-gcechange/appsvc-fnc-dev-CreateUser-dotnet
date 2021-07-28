@@ -22,7 +22,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                         <strong>But don't click it yet, the system needs a few minutes (5 minutes tops) to complete the activation.</strong> Patience is a virtue, and the reward is that when you finally do click the link, you'll be in right away.<br><br>
                         <a href='{Redeem[2]}'>Click here to get started!</a><br><br>
                         Can’t wait to explore the  new platform but don’t know where to start? We’ve got you covered. Check out the <a href='https://gcxgce.sharepoint.com/sites/support'>support centre</a> for guidance and tips on how to navigate gcxchange and explore the full potential of this exciting new tool.<br><br>  
-
+<img src='img/vector-website-under-construction.jpg' alt='under construction image' />
                         ---------------------------------------------------------------------------------<br><br>
 
                         Bonjour {FirstName} {LastName},<br><br>

@@ -54,7 +54,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
                         <li><strong>Chat, call, and co-author with members of your communities using your Microsoft Teams and seamlessly toggle between gcxchange and your departmental environment. <a href='https://teams.microsoft.com/_?tenantId=f6a7234d-bc9b-4520-ad5f-70669c2c7a9c#/conversations/General?threadId=19:OXWdygF2pylAN26lrbZNN-GGzf8W9YEpe2EBawXtM0s1@thread.tacv2&ctx=channel'>Click here to find out how!</a></strong></li></ol>
 
-                        We want to hear from you! Please take a few minutes to respond to our <a href='https://questionnaire.simplesurvey.com/f/l/gcxchange-gcechange?idlang=EN'>survey</a> about the registration process.<br><br>
+                        We want to hear from you! Please take a few minutes to respond to our <a href=' https://questionnaire.simplesurvey.com/f/l/gcxchange-gcechange?idlang=EN'>survey</a> about the registration process.<br><br>
 
                         If you run into any issues along the way, please reach out to the support team at: <a href='mailto:support-soutien@gcx-gce.gc.ca'>support-soutien@gcx-gce.gc.ca</a><br><br>
                         
@@ -73,7 +73,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
                         <li>Clavardez et corédigez des documents avec des membres de vos communautés ou appelez ces membres au moyen de Microsoft Teams et passez facilement de gcéchange à votre environnement ministériel. <a href='https://teams.microsoft.com/_?tenantId=f6a7234d-bc9b-4520-ad5f-70669c2c7a9c#/conversations/General?threadId=19:OXWdygF2pylAN26lrbZNN-GGzf8W9YEpe2EBawXtM0s1@thread.tacv2&ctx=channel'>Cliquez ici pour savoir comment faire.</a></strong></li></ol>
 
-                        Nous souhaitons connaître votre opinion! Veuillez prendre quelques minutes pour répondre à notre <a href='https://questionnaire.simplesurvey.com/f/s.aspx?s=0590AAA0-3F56-4E70-9E9E-2EF02E17589F&idlang=FR&r=2efbf363-db72-4993-a239-aceae143332f'>sondage</a> sur le processus d’inscription.<br><br>
+                        Nous souhaitons connaître votre opinion! Veuillez prendre quelques minutes pour répondre à notre <a href='https://questionnaire.simplesurvey.com/f/l/gcxchange-gcechange?idlang=FR'>sondage</a> sur le processus d’inscription.<br><br>
 
 
                         Si vous éprouvez des problèmes en cours de route, veuillez communiquer avec l’équipe de soutien à l’adresse suivante : <a href='mailto:support-soutien@gcx-gce.gc.ca'>support-soutien@gcx-gce.gc.ca</a>"

@@ -1,12 +1,37 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Azure.WebJobs;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
-    class SendMail
+    public static class SendEmailQueueTrigger
     {
-        public async void send(GraphServiceClient graphServiceClient, ILogger log, List<string> Redeem, string email, string UserSender, string FirstName, string LastName)
+        [FunctionName("SendEmailQueueTrigger")]
+        public static async Task RunAsync(
+            [QueueTrigger("sendemail")] UserEmail email,
+            ILogger log)
+        {
+            IConfiguration config = new ConfigurationBuilder()
+
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            log.LogInformation("C# HTTP trigger function processed a request.");
+            string UserSender = config["userSender"];
+            string redirectLink = config["redirectLink"];
+            string EmailUser = email.emailUser;
+            string FirstName = email.firstname;
+            string LastName = email.lastname;
+            Auth auth = new Auth();
+            var graphAPIAuth = auth.graphAuth(log);
+
+            sendEmail(graphAPIAuth, EmailUser, UserSender, FirstName, LastName, redirectLink, log);
+        }
+        public static async void sendEmail(GraphServiceClient graphServiceClient, string email, string UserSender, string FirstName, string LastName, string redirectLink, ILogger log)
         {
             var submitMsg = new Message();
             submitMsg = new Message
@@ -16,20 +41,42 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 {
                     ContentType = BodyType.Html,
                     Content = @$"
-                        La version française suit<br><br>
-                        Hi {FirstName} {LastName},<br><br>
-                        We’re happy to announce that you now have access to gcxchange!<br><br>
-                        <strong>But don't click it yet, the system needs a few minutes (5 minutes tops) to complete the activation.</strong> Patience is a virtue, and the reward is that when you finally do click the link, you'll be in right away.<br><br>
-                        <a href='{Redeem[2]}'>Click here to get started!</a><br><br>
-                        Can’t wait to explore the  new platform but don’t know where to start? We’ve got you covered. Check out the <a href='https://gcxgce.sharepoint.com/sites/support'>support centre</a> for guidance and tips on how to navigate gcxchange and explore the full potential of this exciting new tool.<br><br>  
+                        (La version française suit)
 
+                        Hi {FirstName} {LastName},<br><br>
+
+                        We’re happy to announce that you now have access to gcxchange – the Government of Canada’s new digital workspace and modern intranet.<br><br>
+
+
+                        Currently, there are two ways to use gcxchange: <br><br>
+
+                        <ol><li><strong>Read articles, create and join GC-wide communities through your personalized homepage. Don’t forget to bookmark it: <a href='https://gcxgce.sharepoint.com/'>gcxgce.sharepoint.com/</a></strong></li>
+
+                        <li><strong>Chat, call, and co-author with members of your communities using your Microsoft Teams and seamlessly toggle between gcxchange and your departmental environment. <a href='https://teams.microsoft.com/_?tenantId=f6a7234d-bc9b-4520-ad5f-70669c2c7a9c#/conversations/General?threadId=19:OXWdygF2pylAN26lrbZNN-GGzf8W9YEpe2EBawXtM0s1@thread.tacv2&ctx=channel'>Click here to find out how!</a></strong></li></ol>
+
+                        We want to hear from you! Please take a few minutes to respond to our <a href=' https://questionnaire.simplesurvey.com/f/l/gcxchange-gcechange?idlang=EN'>survey</a> about the registration process.<br><br>
+
+                        If you run into any issues along the way, please reach out to the support team at: <a href='mailto:support-soutien@gcx-gce.gc.ca'>support-soutien@gcx-gce.gc.ca</a><br><br>
+                        
                         ---------------------------------------------------------------------------------<br><br>
 
+                        (The English version precedes)<br><br>
+
                         Bonjour {FirstName} {LastName},<br><br>
-                        Nous sommes heureux de vous annoncer que vous avez maintenant accès à gcéchange!<br><br>
-                        <strong>Toutefois, attendez avant de cliquer — le système a besoin de quelques minutes (au plus cinq minutes) pour terminer l’activation.</strong> La patience est mère de toutes les vertus, et la récompense, c’est que lorsque vous cliquerez finalement sur le lien, vous y serez déjà.<br><br>
-                        <a href='{Redeem[2]}'>Cliquez ici pour commencer!</a><br><br>
-                        Êtes-vous impatient d’exp lorer la nouvelle plateforme, mais ne savez pas par où commencer? Nous sommes là pour vous guider. Consultez le <a href='https://gcxgce.sharepoint.com/sites/support/sitepages/fr/home.aspx'>centre de soutien</a> pour obtenir des conseils et des astuces sur la façon de naviguer dans gcéchange et d’exploiter le plein potentiel de ce nouvel outil. "
+
+                        Nous sommes heureux de vous annoncer que vous avez maintenant accès à gcéchange – le nouvel espace de travail numérique et intranet moderne du gouvernement du Canada.<br><br>
+
+
+                        À l’heure actuelle, il y a deux façons d’utiliser gcéchange : <br><br>
+
+                        <ol><li><strong>Lisez des articles, créez des communautés pangouvernementales et joignez-vous à celles-ci au moyen de votre page d’accueil personnalisée. N’oubliez pas d’ajouter cet espace dans vos favoris : <a href='https://gcxgce.sharepoint.com/'>gcxgce.sharepoint.com/</a></strong></li>
+
+                        <li>Clavardez et corédigez des documents avec des membres de vos communautés ou appelez ces membres au moyen de Microsoft Teams et passez facilement de gcéchange à votre environnement ministériel. <a href='https://teams.microsoft.com/_?tenantId=f6a7234d-bc9b-4520-ad5f-70669c2c7a9c#/conversations/General?threadId=19:OXWdygF2pylAN26lrbZNN-GGzf8W9YEpe2EBawXtM0s1@thread.tacv2&ctx=channel'>Cliquez ici pour savoir comment faire.</a></strong></li></ol>
+
+                        Nous souhaitons connaître votre opinion! Veuillez prendre quelques minutes pour répondre à notre <a href='https://questionnaire.simplesurvey.com/f/l/gcxchange-gcechange?idlang=FR'>sondage</a> sur le processus d’inscription.<br><br>
+
+
+                        Si vous éprouvez des problèmes en cours de route, veuillez communiquer avec l’équipe de soutien à l’adresse suivante : <a href='mailto:support-soutien@gcx-gce.gc.ca'>support-soutien@gcx-gce.gc.ca</a>"
                 },
                 ToRecipients = new List<Recipient>()
                 {
@@ -48,7 +95,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                       .SendMail(submitMsg)
                       .Request()
                       .PostAsync();
-                log.LogInformation($"User mail successfully {Redeem[2]}");
+                log.LogInformation($"User mail successfully {redirectLink}");
 
             }
             catch (ServiceException e)

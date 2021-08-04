@@ -15,4 +15,11 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
         public string department { get; set; }
     }
 
+    public class UserEmail
+    {
+        public string emailUser { get; set; }
+        public string firstname { get; set; }
+        public string lastname { get; set; }
+    }
+
 }

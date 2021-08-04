@@ -5,6 +5,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Queue;
+using Newtonsoft.Json;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
@@ -50,16 +53,27 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
            
                     if (addWelcomeGroup)
                     {
-                        SendMail sendmail = new SendMail();
-                        try
+                        string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
+                        string ResponsQueue = "";
+
+                        var connectionString = config["AzureWebJobsStorage"];
+
+                        CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
+                        CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+                        CloudQueue queue = queueClient.GetQueueReference("sendemail");
+              
+                        ResponsQueue = AddQueueEmail(queue, EmailUser, FirstName, LastName, log).GetAwaiter().GetResult();
+
+                        if (String.Equals(ResponsQueue, "Queue create"))
                         {
-                            string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
-                      
-                            sendmail.send(graphAPIAuth, log, createUser, EmailUser, UserSender, FirstName, LastName);
+                            log.LogInformation("Response queue");
+                            //return new OkObjectResult(ResponsQueue);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            throw new SystemException($"Error in invite user: {ex}");
+                            log.LogInformation("Response queue error");
+
+                            throw new SystemException(ResponsQueue);
                         }
                     }
                     else
@@ -152,6 +166,41 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 result = false;
             }
             return result;
+        }
+
+        static async Task<string> AddQueueEmail(CloudQueue theQueue,  string EmailUser, string FirstName, string LastName, ILogger log)
+        {
+            string response = "";
+            UserEmail email = new UserEmail();
+
+            email.emailUser = EmailUser;
+            email.firstname = FirstName;
+            email.lastname = LastName;
+
+
+            string serializedMessage = JsonConvert.SerializeObject(email);
+            if (await theQueue.CreateIfNotExistsAsync())
+            {
+                log.LogInformation("The queue was created.");
+            }
+
+            CloudQueueMessage message = new CloudQueueMessage(serializedMessage);
+            try
+            {
+                log.LogInformation("create queue");
+
+                theQueue.AddMessage(message, initialVisibilityDelay: TimeSpan.FromMinutes(5));
+                response = "Queue create";
+            }
+            catch (Exception ex)
+            {
+                log.LogInformation($"Error in the queue {ex}");
+                response = "Queue error";
+
+            }
+
+            return response;
+
         }
     }
 }

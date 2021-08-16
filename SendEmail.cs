@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -23,13 +24,16 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             log.LogInformation("C# HTTP trigger function processed a request.");
             string UserSender = config["userSender"];
             string redirectLink = config["redirectLink"];
+            string welcomeGroup = config["welcomeGroup"];
             string EmailUser = email.emailUser;
             string FirstName = email.firstname;
             string LastName = email.lastname;
+            List<string> userID = email.userid;
             Auth auth = new Auth();
             var graphAPIAuth = auth.graphAuth(log);
 
             sendEmail(graphAPIAuth, EmailUser, UserSender, FirstName, LastName, redirectLink, log);
+           await addUserWelcomeGroup(graphAPIAuth, userID, welcomeGroup, log);
         }
         public static async void sendEmail(GraphServiceClient graphServiceClient, string email, string UserSender, string FirstName, string LastName, string redirectLink, ILogger log)
         {
@@ -41,7 +45,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 {
                     ContentType = BodyType.Html,
                     Content = @$"
-                        (La version française suit)
+                        (La version française suit)<br><br>
 
                         Hi {FirstName} {LastName},<br><br>
 
@@ -102,6 +106,31 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             {
                 log.LogInformation($"Error: {e.Message}");
             }
+        }
+
+        public static async Task<bool> addUserWelcomeGroup(GraphServiceClient graphServiceClient, List<string> userID, string welcomeGroup, ILogger log)
+        {
+            bool result = false;
+            try
+            {
+                var directoryObject = new DirectoryObject
+                    {
+	                    Id = userID[1]
+                    };
+
+                await graphServiceClient.Groups[welcomeGroup].Members.References
+	                .Request()
+	                .AddAsync(directoryObject);
+                log.LogInformation("User add to welcome group successfully");
+
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                log.LogInformation($"Error adding User to welcome group : {ex.Message}");
+                result = false;
+            }
+            return result;
         }
     }
 }

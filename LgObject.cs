@@ -20,6 +20,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
         public string emailUser { get; set; }
         public string firstname { get; set; }
         public string lastname { get; set; }
+        public List<string> userid { get; set; }
     }
 
 }

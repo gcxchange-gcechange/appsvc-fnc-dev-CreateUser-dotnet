@@ -26,9 +26,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             .AddEnvironmentVariables()
             .Build();
 
-            log.LogInformation("C# HTTP trigger function processed a request.");
-            string welcomeGroup = config["welcomeGroup"];
-            string UserSender = config["userSender"];
             string redirectLink = config["redirectLink"];
             string EmailWork = user.emailwork;
             string EmailCloud = user.emailcloud;
@@ -49,36 +46,25 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 var userupdate = await updateUser(graphAPIAuth, createUser, Department, FirstName, LastName, log);
                 if (userupdate)
                 {
-                    var addWelcomeGroup = await addUserWelcomeGroup(graphAPIAuth, createUser, welcomeGroup, log);
-           
-                    if (addWelcomeGroup)
+                    string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
+                    string ResponsQueue = "";
+
+                    var connectionString = config["AzureWebJobsStorage"];
+
+                    CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
+                    CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+                    CloudQueue queue = queueClient.GetQueueReference("sendemail");
+                     
+                    ResponsQueue = AddQueueEmail(queue, EmailUser, FirstName, LastName, createUser, log).GetAwaiter().GetResult();
+
+                    if (String.Equals(ResponsQueue, "Queue create"))
                     {
-                        string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
-                        string ResponsQueue = "";
-
-                        var connectionString = config["AzureWebJobsStorage"];
-
-                        CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
-                        CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-                        CloudQueue queue = queueClient.GetQueueReference("sendemail");
-              
-                        ResponsQueue = AddQueueEmail(queue, EmailUser, FirstName, LastName, log).GetAwaiter().GetResult();
-
-                        if (String.Equals(ResponsQueue, "Queue create"))
-                        {
-                            log.LogInformation("Response queue");
-                            //return new OkObjectResult(ResponsQueue);
-                        }
-                        else
-                        {
-                            log.LogInformation("Response queue error");
-
-                            throw new SystemException(ResponsQueue);
-                        }
+                        log.LogInformation("Response queue");
                     }
                     else
                     {
-                        throw new SystemException("Can't send user mail");
+                    log.LogInformation("Response queue error");
+                        throw new SystemException(ResponsQueue);
                     }
                 }
                 else
@@ -143,32 +129,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             return result;
         }
 
-        public static async Task<bool> addUserWelcomeGroup(GraphServiceClient graphServiceClient, List<string> userID, string welcomeGroup, ILogger log)
-        {
-            bool result = false;
-            try
-            {
-                var directoryObject = new DirectoryObject
-                    {
-	                    Id = userID[1]
-                    };
-
-                await graphServiceClient.Groups[welcomeGroup].Members.References
-	                .Request()
-	                .AddAsync(directoryObject);
-                log.LogInformation("User add to welcome group successfully");
-
-                result = true;
-            }
-            catch (Exception ex)
-            {
-                log.LogInformation($"Error adding User to welcome group : {ex.Message}");
-                result = false;
-            }
-            return result;
-        }
-
-        static async Task<string> AddQueueEmail(CloudQueue theQueue,  string EmailUser, string FirstName, string LastName, ILogger log)
+        static async Task<string> AddQueueEmail(CloudQueue theQueue,  string EmailUser, string FirstName, string LastName, List<string> userID, ILogger log)
         {
             string response = "";
             UserEmail email = new UserEmail();
@@ -176,7 +137,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             email.emailUser = EmailUser;
             email.firstname = FirstName;
             email.lastname = LastName;
-
+            email.userid = userID;
 
             string serializedMessage = JsonConvert.SerializeObject(email);
             if (await theQueue.CreateIfNotExistsAsync())

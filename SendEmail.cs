@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -23,13 +24,16 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             log.LogInformation("C# HTTP trigger function processed a request.");
             string UserSender = config["userSender"];
             string redirectLink = config["redirectLink"];
+            string welcomeGroup = config["welcomeGroup"];
             string EmailUser = email.emailUser;
             string FirstName = email.firstname;
             string LastName = email.lastname;
+            List<string> userID = email.userid;
             Auth auth = new Auth();
             var graphAPIAuth = auth.graphAuth(log);
 
             sendEmail(graphAPIAuth, EmailUser, UserSender, FirstName, LastName, redirectLink, log);
+           await addUserWelcomeGroup(graphAPIAuth, userID, welcomeGroup, log);
         }
         public static async void sendEmail(GraphServiceClient graphServiceClient, string email, string UserSender, string FirstName, string LastName, string redirectLink, ILogger log)
         {
@@ -41,7 +45,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 {
                     ContentType = BodyType.Html,
                     Content = @$"
-                        (La version française suit)
+                        (La version française suit)<br><br>
 
                         Hi {FirstName} {LastName},<br><br>
 
@@ -71,7 +75,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
                         <ol><li><strong>Lisez des articles, créez des communautés pangouvernementales et joignez-vous à celles-ci au moyen de votre page d’accueil personnalisée. N’oubliez pas d’ajouter cet espace dans vos favoris : <a href='https://gcxgce.sharepoint.com/'>gcxgce.sharepoint.com/</a></strong></li>
 
-                        <li>Clavardez et corédigez des documents avec des membres de vos communautés ou appelez ces membres au moyen de Microsoft Teams et passez facilement de gcéchange à votre environnement ministériel. <a href='https://teams.microsoft.com/_?tenantId=f6a7234d-bc9b-4520-ad5f-70669c2c7a9c#/conversations/General?threadId=19:OXWdygF2pylAN26lrbZNN-GGzf8W9YEpe2EBawXtM0s1@thread.tacv2&ctx=channel'>Cliquez ici pour savoir comment faire.</a></strong></li></ol>
+                        <li><strong>Clavardez et corédigez des documents avec des membres de vos communautés ou appelez ces membres au moyen de Microsoft Teams et passez facilement de gcéchange à votre environnement ministériel. <a href='https://teams.microsoft.com/_?tenantId=f6a7234d-bc9b-4520-ad5f-70669c2c7a9c#/conversations/General?threadId=19:OXWdygF2pylAN26lrbZNN-GGzf8W9YEpe2EBawXtM0s1@thread.tacv2&ctx=channel'>Cliquez ici pour savoir comment faire.</a></strong></li></ol>
 
                         Nous souhaitons connaître votre opinion! Veuillez prendre quelques minutes pour répondre à notre <a href='https://questionnaire.simplesurvey.com/f/l/gcxchange-gcechange?idlang=FR'>sondage</a> sur le processus d’inscription.<br><br>
 
@@ -102,6 +106,31 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             {
                 log.LogInformation($"Error: {e.Message}");
             }
+        }
+
+        public static async Task<bool> addUserWelcomeGroup(GraphServiceClient graphServiceClient, List<string> userID, string welcomeGroup, ILogger log)
+        {
+            bool result = false;
+            try
+            {
+                var directoryObject = new DirectoryObject
+                    {
+	                    Id = userID[1]
+                    };
+
+                await graphServiceClient.Groups[welcomeGroup].Members.References
+	                .Request()
+	                .AddAsync(directoryObject);
+                log.LogInformation("User add to welcome group successfully");
+
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                log.LogInformation($"Error adding User to welcome group : {ex.Message}");
+                result = false;
+            }
+            return result;
         }
     }
 }

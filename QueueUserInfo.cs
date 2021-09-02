@@ -48,6 +48,15 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
             else
             {
+                // Check if user exists
+                var userExists = await CheckUserExists(EmailWork, log);
+
+                if(userExists)
+                {
+                    ResponsQueue = $"{EmailWork} already registered";
+                    return new BadRequestObjectResult(ResponsQueue);
+                }
+
                 var connectionString = config["AzureWebJobsStorage"];
                 log.LogInformation($"Queue for {EmailCloud}");
                 CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
@@ -104,6 +113,23 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
             return response;
 
+        }
+
+        static async Task<bool> CheckUserExists(string Email, ILogger log)
+        {
+            bool result = false;
+
+            Auth auth = new Auth();
+            var graphAPIAuth = auth.graphAuth(log);
+
+            var user = await graphAPIAuth.Users.Request().Filter($"mail eq '{Email}'").GetAsync();
+
+            if(user.Count > 0)
+            {
+                result = true;
+            }
+
+            return result;
         }
     }
 }

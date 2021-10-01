@@ -25,6 +25,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             string UserSender = config["userSender"];
             string redirectLink = config["redirectLink"];
             string welcomeGroup = config["welcomeGroup"];
+            string GCX_Assigned = config["gcxAssigned"];
             string EmailUser = email.emailUser;
             string FirstName = email.firstname;
             string LastName = email.lastname;
@@ -33,7 +34,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             var graphAPIAuth = auth.graphAuth(log);
 
             sendEmail(graphAPIAuth, EmailUser, UserSender, FirstName, LastName, redirectLink, log);
-           await addUserWelcomeGroup(graphAPIAuth, userID, welcomeGroup, log);
+           await addUserToGroups(graphAPIAuth, userID, welcomeGroup, log);
         }
         public static async void sendEmail(GraphServiceClient graphServiceClient, string email, string UserSender, string FirstName, string LastName, string redirectLink, ILogger log)
         {
@@ -108,7 +109,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
         }
 
-        public static async Task<bool> addUserWelcomeGroup(GraphServiceClient graphServiceClient, List<string> userID, string welcomeGroup, ILogger log)
+        public static async Task<bool> addUserToGroups(GraphServiceClient graphServiceClient, List<string> userID, string welcomeGroup, string GCX_Assigned, ILogger log)
         {
             bool result = false;
             try
@@ -122,6 +123,10 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 	                .Request()
 	                .AddAsync(directoryObject);
                 log.LogInformation("User add to welcome group successfully");
+                await graphServiceClient.Groups[GCX_Assigned].Members.References
+	                .Request()
+	                .AddAsync(directoryObject);
+                log.LogInformation("User add to GCX_Assigned group successfully");
 
                 result = true;
             }

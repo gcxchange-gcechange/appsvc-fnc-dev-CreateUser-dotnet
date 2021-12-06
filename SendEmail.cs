@@ -34,7 +34,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             var graphAPIAuth = auth.graphAuth(log);
 
             sendEmail(graphAPIAuth, EmailUser, UserSender, FirstName, LastName, redirectLink, log);
-           await addUserToGroups(graphAPIAuth, userID, welcomeGroup, log);
+           await addUserToGroups(graphAPIAuth, userID, welcomeGroup, GCX_Assigned,log);
         }
         public static async void sendEmail(GraphServiceClient graphServiceClient, string email, string UserSender, string FirstName, string LastName, string redirectLink, ILogger log)
         {

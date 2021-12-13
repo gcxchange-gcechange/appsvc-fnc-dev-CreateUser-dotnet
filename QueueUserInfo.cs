@@ -40,7 +40,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             Department = Department ?? data?.Department;
 
             string ResponsQueue = "";
-
+            log.LogInformation($"Start process with {EmailCloud}");
             if (String.IsNullOrEmpty(EmailCloud) || String.IsNullOrEmpty(EmailWork) || String.IsNullOrEmpty(FirstName) || String.IsNullOrEmpty(LastName))
             {
                 ResponsQueue = $"Missing field: {EmailCloud} - {EmailWork} - {FirstName} - {LastName}";

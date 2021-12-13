@@ -34,7 +34,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             string Department = user.department;
             Auth auth = new Auth();
             var graphAPIAuth = auth.graphAuth(log);
-
+            log.LogInformation($"Create user {EmailCloud}");
             var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, redirectLink, log);
 
             if (String.Equals(createUser[0], "Invitation error"))

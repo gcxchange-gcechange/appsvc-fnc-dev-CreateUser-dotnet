@@ -41,7 +41,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             var submitMsg = new Message();
             submitMsg = new Message
             {
-                Subject = "You're in! | Vous s'y êtes",
+                Subject = "You're in! | Vous y êtes",
                 Body = new ItemBody
                 {
                     ContentType = BodyType.Html,

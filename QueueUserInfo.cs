@@ -43,7 +43,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             log.LogInformation($"Start process with {EmailCloud}");
             if (String.IsNullOrEmpty(EmailCloud) || String.IsNullOrEmpty(EmailWork) || String.IsNullOrEmpty(FirstName) || String.IsNullOrEmpty(LastName))
             {
-                ResponsQueue = $"Missing field: {EmailCloud} - {EmailWork} - {FirstName} - {LastName}";
+                ResponsQueue = $"Missing field: {nameof(EmailCloud)}: {EmailCloud} - {nameof(EmailWork)}: {EmailWork} - {nameof(FirstName)}: {FirstName} - {nameof(LastName)}: {LastName}";
                 return new BadRequestObjectResult(ResponsQueue);
             }
             else
@@ -122,7 +122,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             Auth auth = new Auth();
             var graphAPIAuth = auth.graphAuth(log);
 
-            var user = await graphAPIAuth.Users.Request().Filter($"mail eq '{Email}'").GetAsync();
+            var user = await graphAPIAuth.Users.Request().Filter($"mail eq '{Email.Replace("'", "''")}'").GetAsync();
 
             if(user.Count > 0)
             {

@@ -63,10 +63,10 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						<br><br>
 						On the Sharepoint side of GCXchange you can:
 						<ol>
-						<li>Read <a href='https://gcxgce.sharepoint.com/sites/news'>GC-wide news and stories</a>.</li>
-						<li>Join one of the many <a href='https://gcxgce.sharepoint.com/sites/Communities'>cross-departmental communities.</a></li>
-						<li>Engage with thematic hubs that focus on issues relevant to the public service.</li>
-						<li>Create a <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/Communities.aspx'>community</a> for interdepartmental collaboration with a dedicated page and Teams space.</li>
+						<li>read <a href='https://gcxgce.sharepoint.com/sites/news'>GC-wide news and stories</a></li>
+						<li>join one of the many <a href='https://gcxgce.sharepoint.com/sites/Communities'>cross-departmental communities</a></li>
+						<li>engage with thematic hubs that focus on issues relevant to the public service</li>
+						<li>create a <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/Communities.aspx'>community</a> for interdepartmental collaboration with a dedicated page and Teams space</li>
 						</ol>
 						<br>
 						On the Teams side of GCXchange you can engage with the communities you have joined, as well as co-autho documents and chat with colleagues in other departments and agencies. To learn how to switch between your departmental and GCXchange MS Teams accounts <a href='https://www.youtube.com/watch?v=71bULf1UqGw&list=PLWhPHFzdUwX98NKbSG8kyq5eW9waj3nNq&index=8'>watch a video tutorial</a> or <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/FAQ.aspx'>access the step-by-step guidance</a>.
@@ -83,7 +83,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						<br><br>
 						Bonjour { FirstName } { LastName },
 						<br><br>
-						Nous sommes heureux de vous annoncer que vous avez maintenant accès à <a href='https://gcxgce.sharepoint.com/SitePages/fr/Home.aspx?gcxLangTour=fr'>GCÉchange</a>, la nouvelle plateforme de collaboration et de travail numérique du GC! Aucum nom d'utilisateur ni mot de passe n'est requis pour accéder à GCÉchange, puisque cette platforme est intégrée à la session unique que vous ouvrez à partir de votre appareil gouvernemental.
+						Nous sommes heureux de vous annoncer que vous avez maintenant accès à <a href='https://gcxgce.sharepoint.com/SitePages/fr/Home.aspx?gcxLangTour=fr'>GCÉchange</a>, la nouvelle plateforme de collaboration et de travail numérique du GC! Aucun nom d'utilisateur ni mot de passe n'est requis pour accéder à GCÉchange, puisque cette platforme est intégrée à la session unique que vous ouvrez à partir de votre appareil gouvernemental.
 						<br><br>
 						<center><h2><a href='https://gcxgce.sharepoint.com/SitePages/fr/Home.aspx?gcxLangTour=fr'>Vous pouvez accéder à GCÉchange ici</a></h2>
 						<br>
@@ -93,10 +93,10 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						<br><br>
 						Du côté SharePoint de GCÉchange, vous pouvez :
 						<ol>
-						<li>lire <a href='https://gcxgce.sharepoint.com/sites/News/SitePages/fr/Home.aspx'></a>les nouvelles et les histoires du GC.</li>
-						<li>participer à l’une des nombreuses <a href='https://gcxgce.sharepoint.com/sites/Communities/SitePages/fr/Home.aspx'>participer à l’une des nombreuses collectivités interministérielles.</a></li>
-						<li>participer à des carrefours thématiques qui se concentrent sur ces enjeux pertinents pour la fonction publique.</li>
-						<li>créer une <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/fr/Communities.aspx'>collectivité</a> de collaboration interministérielle qui a sa page et son espace Teams.</li>
+						<li>lire <a href='https://gcxgce.sharepoint.com/sites/News/SitePages/fr/Home.aspx'></a>les nouvelles et les histoires du GC</li>
+						<li>participer à l’une des nombreuses <a href='https://gcxgce.sharepoint.com/sites/Communities/SitePages/fr/Home.aspx'>participer à l’une des nombreuses collectivités interministérielles</a></li>
+						<li>participer à des carrefours thématiques qui se concentrent sur ces enjeux pertinents pour la fonction publique</li>
+						<li>créer une <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/fr/Communities.aspx'>collectivité</a> de collaboration interministérielle qui a sa page et son espace Teams</li>
 						</ol>
 						<br>
 						Du côté Teams de GCÉchange, vous pouvez communiquer avec les collectivités desquelles vous êtes membre, corédiger des documents et clavarder avec des collègues d’autres ministères et organismes. Pour savoir comment passer d’un compte ministériel à un compte GCÉchange dans Teams, <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/fr/FAQ.aspx'>regardez un tutoriel vidéo ou accédez aux directives étape par étape.</a>

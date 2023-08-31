@@ -69,7 +69,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
                     if (isSynced)
                     {
-                        ResponsQueue = $"{Department} already synced";
+                        ResponsQueue = $"{Department} already synced. User email:{EmailWork}";
                         return new BadRequestObjectResult(ResponsQueue);
                     }
 

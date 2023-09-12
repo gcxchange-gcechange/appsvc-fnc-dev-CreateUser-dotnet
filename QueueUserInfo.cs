@@ -29,6 +29,8 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
             string listId = config["listId"];
             string siteId = config["siteId"];
+            string UserSender = config["userSender"];
+            string recipientAddress = config["recipientAddress"];
 
             string EmailWork = req.Query["EmailWork"];
             string EmailCloud = req.Query["EmailCloud"];
@@ -69,6 +71,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 
                     if (isSynced)
                     {
+                        sendEmail(recipientAddress, UserSender, EmailWork, Department, DateTime.Now, log);
                         ResponsQueue = $"{Department} already synced. User email:{EmailWork}";
                         return new BadRequestObjectResult(ResponsQueue);
                     }
@@ -189,14 +192,46 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             return result;
         }
 
+        public static async void sendEmail(string recipientAddress, string senderUserId, string userEmail, string userDept, DateTime incidentDate, ILogger log)
+        {
+            Auth auth = new Auth();
+            var graphAPIAuth = auth.graphAuth(log);
 
+            var format = "yyyy-MM-dd hh:mm:ss tt";
 
+            var submitMsg = new Message
+            {
+                Subject = "GCX - Registration attempt from synced department",
 
+                Body = new ItemBody
+                {
+                    ContentType = BodyType.Html,
+                    Content = @$"<p>The following user from a synced department attempted to register for GCX:</p>
+                                 Date: {incidentDate.ToString(format)}<br />
+                                 User email: {userEmail}<br />
+                                 User department: {userDept}<br />"
+                },
+                ToRecipients = new List<Recipient>()
+                {
+                    new Recipient
+                    {
+                        EmailAddress = new EmailAddress
+                        {
+                           Address = $"{recipientAddress}"
+                        }
+                    }
+                },
+            };
 
+            try
+            {
+                await graphAPIAuth.Users[senderUserId].SendMail(submitMsg).Request().PostAsync();
 
-
-
-
-
+            }
+            catch (ServiceException e)
+            {
+                log.LogInformation($"Error: {e.Message}");
+            }
+        }
     }
 }

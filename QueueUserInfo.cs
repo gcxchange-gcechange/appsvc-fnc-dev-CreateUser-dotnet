@@ -27,19 +27,19 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             .AddEnvironmentVariables()
             .Build();
 
-            string listId = config["listId"];
-            string siteId = config["siteId"];
             string UserSender = config["userSender"];
             string recipientAddress = config["recipientAddress"];
+            string ResponsQueue = "";
 
             string EmailWork = req.Query["EmailWork"];
             string EmailCloud = req.Query["EmailCloud"];
             string FirstName = req.Query["FirstName"];
             string LastName = req.Query["LastName"];
             string Department = req.Query["Department"];
+            string B2B = req.Query["B2B"];
+            string RGCode = req.Query["RGCode"];
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            string ResponsQueue = "";
             dynamic data = JsonConvert.DeserializeObject(requestBody);
 
             EmailWork = EmailWork ?? data?.EmailWork;
@@ -47,6 +47,8 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             FirstName = FirstName ?? data?.FirstName;
             LastName = LastName ?? data?.LastName;
             Department = Department ?? data?.Department;
+            B2B = B2B ?? data?.B2B;
+            RGCode = RGCode ?? data?.RGCode;
 
             log.LogInformation($"Start process with {EmailCloud}");
             if (String.IsNullOrEmpty(EmailCloud) || String.IsNullOrEmpty(EmailWork) || String.IsNullOrEmpty(FirstName) || String.IsNullOrEmpty(LastName))
@@ -67,7 +69,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 else
                 {
                     // Check if department has been synced
-                    var isSynced = await CheckB2BSync(siteId, listId, Department, log);
+                    var isSynced = (B2B == "YES");
 
                     if (isSynced)
                     {
@@ -75,7 +77,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                         ResponsQueue = $"{Department} already synced. User email:{EmailWork}";
                         return new BadRequestObjectResult(ResponsQueue);
                     }
-
                 }
 
                 var connectionString = config["AzureWebJobsStorage"];
@@ -84,7 +85,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
                 CloudQueue queue = queueClient.GetQueueReference("userrequestaccess");
 
-                ResponsQueue = InsertMessageAsync(queue, EmailCloud, EmailWork, FirstName, LastName, Department, log).GetAwaiter().GetResult();
+                ResponsQueue = InsertMessageAsync(queue, EmailCloud, EmailWork, FirstName, LastName, RGCode, log).GetAwaiter().GetResult();
 
                 if (String.Equals(ResponsQueue, "Queue create"))
                 {
@@ -94,13 +95,12 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 else
                 {
                     log.LogInformation("Response queue error");
-
                     return new BadRequestObjectResult(ResponsQueue);
                 }
             }
         }
        
-        static async Task<string> InsertMessageAsync(CloudQueue theQueue, string emailcloud, string emailwork, string firstname, string lastname, string department, ILogger log)
+        static async Task<string> InsertMessageAsync(CloudQueue theQueue, string emailcloud, string emailwork, string firstname, string lastname, string rgcode, ILogger log)
         {
             string response = "";
             UserInfo info = new UserInfo();
@@ -109,7 +109,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             info.emailwork = emailwork;
             info.firstname = firstname;
             info.lastname = lastname;
-            info.department = department;
+            info.rgcode = rgcode;
 
             string serializedMessage = JsonConvert.SerializeObject(info);
             if (await theQueue.CreateIfNotExistsAsync())
@@ -121,7 +121,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             try
             {
                 log.LogInformation("create queue");
-
                 await theQueue.AddMessageAsync(message);
                 response = "Queue create";
             }
@@ -133,7 +132,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
 
             return response;
-
         }
 
         static async Task<bool> CheckUserExists(string Email, ILogger log)
@@ -150,45 +148,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 result = true;
             }
 
-            return result;
-        }
-
-        static async Task<bool> CheckB2BSync(string siteId, string listId, string RGCode, ILogger log)
-        {
-            bool result = false;
-
-            Auth auth = new Auth();
-            var graphAPIAuth = auth.graphAuth(log);
-
-            try
-            {
-                var queryOptions = new List<Option>()
-                {
-                    new QueryOption("expand", "fields(select=Id, Legal_x0020_Title, RG_x0020_Code, B2B)"),
-
-                    //new HeaderOption("ConsistencyLevel", "eventual"),
-                    //new QueryOption("$filter", "RG_x0020_Code eq '19'")
-                    //new QueryOption("count", "true")
-                };
-
-                var deptItems = await graphAPIAuth.Sites[siteId].Lists[listId].Items.Request(queryOptions).GetAsync();
-
-                foreach (var dept in deptItems)
-                {
-                    if (dept.Fields.AdditionalData.ContainsKey("RG_x0020_Code") && dept.Fields.AdditionalData["RG_x0020_Code"].ToString() == RGCode)
-                    {
-                        if (dept.Fields.AdditionalData.ContainsKey("B2B") && dept.Fields.AdditionalData["B2B"].ToString() == "YES")
-                        {
-                            result = true;
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                log.LogError($"e.Message = {e.Message}");
-                if (e.InnerException != null) log.LogError($"e.InnerException = {e.InnerException}");
-            }
             return result;
         }
 

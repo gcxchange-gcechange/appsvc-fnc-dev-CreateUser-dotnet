@@ -31,9 +31,11 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             string EmailCloud = user.emailcloud;
             string FirstName = user.firstname;
             string LastName = user.lastname;
-            string Department = user.department;
+            string RGCode = user.rgcode;
+
             Auth auth = new Auth();
             var graphAPIAuth = auth.graphAuth(log);
+
             log.LogInformation($"Create user {EmailCloud}");
             var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, redirectLink, log);
 
@@ -43,7 +45,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             }
             else
             {
-                var userupdate = await updateUser(graphAPIAuth, createUser, Department, FirstName, LastName, log);
+                var userupdate = await updateUser(graphAPIAuth, createUser, RGCode, FirstName, LastName, log);
                 if (userupdate)
                 {
                     string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
@@ -105,14 +107,14 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             return InviteInfo;
         }
 
-        public static async Task<bool> updateUser(GraphServiceClient graphServiceClient, List<string> userID, string department, string firstName, string lastName, ILogger log)
+        public static async Task<bool> updateUser(GraphServiceClient graphServiceClient, List<string> userID, string RGCode, string firstName, string lastName, ILogger log)
         {
             bool result = false;
             try
             {
                 var guestUser = new User
                 {
-                    Department = department,
+                    Department = RGCode,
                     UserType = "Member"
                 };
 

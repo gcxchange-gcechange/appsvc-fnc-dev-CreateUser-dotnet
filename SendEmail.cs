@@ -144,13 +144,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 	                    Id = userID[1]
                     };
 
-                await graphServiceClient.Groups[welcomeGroup].Members.References
-	                .Request()
-	                .AddAsync(directoryObject);
-                log.LogInformation("User add to welcome group successfully");
-                await graphServiceClient.Groups[GCX_Assigned].Members.References
-	                .Request()
-	                .AddAsync(directoryObject);
+                await graphServiceClient.Groups[GCX_Assigned].Members.References.Request().AddAsync(directoryObject);
                 log.LogInformation("User add to GCX_Assigned group successfully");
 
                 result = true;

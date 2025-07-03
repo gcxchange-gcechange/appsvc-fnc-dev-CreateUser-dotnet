@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace appsvc_fnc_dev_CreateUser_dotnet
+﻿namespace appsvc_fnc_dev_CreateUser_dotnet
 {
     public class UserInfo
     {

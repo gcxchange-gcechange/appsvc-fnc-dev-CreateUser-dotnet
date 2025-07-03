@@ -1,45 +1,47 @@
-﻿using Microsoft.Azure.WebJobs;
+﻿using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.Graph.Models;
+using Microsoft.Graph.Users.Item.SendMail;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
-    public static class SendEmailQueueTrigger
+    public class SendEmailQueueTrigger
     {
-        [FunctionName("SendEmailQueueTrigger")]
-        public static async Task RunAsync(
-            [QueueTrigger("sendemail")] UserEmail email,
-            ILogger log)
+        private readonly IConfiguration _config;
+        private readonly ILogger<SendEmailQueueTrigger> _log;
+
+        public SendEmailQueueTrigger(IConfiguration config, ILogger<SendEmailQueueTrigger> log)
         {
-            IConfiguration config = new ConfigurationBuilder()
-
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-            log.LogInformation("C# HTTP trigger function processed a request.");
-            string UserSender = config["userSender"];
-            string redirectLink = config["redirectLink"];
-            string welcomeGroup = config["welcomeGroup"];
-            string GCX_Assigned = config["gcxAssigned"];
-            string EmailUser = email.emailUser;
-            string FirstName = email.firstname;
-            string LastName = email.lastname;
-            List<string> userID = email.userid;
-            Auth auth = new Auth();
-            var graphAPIAuth = auth.graphAuth(log);
-
-            sendEmail(graphAPIAuth, EmailUser, UserSender, FirstName, LastName, redirectLink, log);
-           await addUserToGroups(graphAPIAuth, userID, welcomeGroup, GCX_Assigned,log);
+            _config = config;
+            _log = log;
         }
-        public static async void sendEmail(GraphServiceClient graphServiceClient, string email, string UserSender, string FirstName, string LastName, string redirectLink, ILogger log)
+
+        [Function("SendEmailQueueTrigger")]
+        public async Task RunAsync([QueueTrigger("sendemail")] UserEmail email)
         {
-            var submitMsg = new Message();
-            submitMsg = new Message
+            _log.LogInformation("SendEmailQueueTrigger started");
+
+            string userSender = _config["userSender"];
+            string redirectLink = _config["redirectLink"];
+            string welcomeGroup = _config["welcomeGroup"];
+            string gcxAssigned = _config["gcxAssigned"];
+
+            string emailUser = email.emailUser;
+            string firstName = email.firstname;
+            string lastName = email.lastname;
+            List<string> userID = email.userid;
+
+            var graphClient = Auth.GetGraphClient(_log);
+
+            await SendEmailAsync(graphClient, emailUser, userSender, firstName, lastName, redirectLink);
+            await AddUserToGroupsAsync(graphClient, userID, welcomeGroup, gcxAssigned);
+        }
+
+        private async Task SendEmailAsync(GraphServiceClient graphClient, string recipientEmail, string senderUserId, string firstName, string lastName, string redirectLink)
+        {
+            var message = new Message
             {
                 Subject = "You now have access to GCXchange | Vous avez maintenant accés à GCÉchange",
                 Body = new ItemBody
@@ -51,7 +53,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						<br><br>
 						<b>Welcome to GC<b style='color: #1f9cf5'>X</b>change!</b>
 						<br><br>
-						Hi { FirstName } { LastName },
+						Hi {firstName} {lastName},
 						<br><br>
 						We're happy to announce that you now have access to <a href='https://gcxgce.sharepoint.com/?gcxLangTour=en'>GCXchange</a> — the GC's new digital workspace and collaboration platform! No log-in or password is needed for GCXchange, since it uses a single sign-on from your government device.
 						<br><br>
@@ -81,7 +83,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						<br><br>
 						<b>Bienvenue à GC<b style='color: #1f9cf5'>É</b>change!</b>
 						<br><br>
-						Bonjour { FirstName } { LastName },
+						Bonjour {firstName} {lastName},
 						<br><br>
 						Nous sommes heureux de vous annoncer que vous avez maintenant accès à <a href='https://gcxgce.sharepoint.com/SitePages/fr/Home.aspx?gcxLangTour=fr'>GCÉchange</a>, la nouvelle plateforme de collaboration et de travail numérique du GC! Aucun nom d'utilisateur ni mot de passe n'est requis pour accéder à GCÉchange, puisque cette platforme est intégrée à la session unique que vous ouvrez à partir de votre appareil gouvernemental.
 						<br><br>
@@ -108,53 +110,61 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						Bonne collaboration!
 						</div>"
                 },
-                ToRecipients = new List<Recipient>()
+                ToRecipients = new List<Recipient>
                 {
                     new Recipient
                     {
                         EmailAddress = new EmailAddress
                         {
-                           Address = $"{email}"
+                            Address = recipientEmail
                         }
                     }
-                },
+                }
             };
+
             try
             {
-                await graphServiceClient.Users[UserSender]
-                      .SendMail(submitMsg)
-                      .Request()
-                      .PostAsync();
-                log.LogInformation($"User mail successfully {redirectLink}");
+                var sendMailRequest = new SendMailPostRequestBody
+                {
+                    Message = message,
+                    SaveToSentItems = false
+                };
 
-            }
-            catch (ServiceException e)
-            {
-                log.LogInformation($"Error: {e.Message}");
-            }
-        }
-
-        public static async Task<bool> addUserToGroups(GraphServiceClient graphServiceClient, List<string> userID, string welcomeGroup, string GCX_Assigned, ILogger log)
-        {
-            bool result = false;
-            try
-            {
-                var directoryObject = new DirectoryObject
-                    {
-	                    Id = userID[1]
-                    };
-
-                await graphServiceClient.Groups[GCX_Assigned].Members.References.Request().AddAsync(directoryObject);
-                log.LogInformation("User add to GCX_Assigned group successfully");
-
-                result = true;
+                await graphClient.Users[senderUserId].SendMail.PostAsync(sendMailRequest);
+                _log.LogInformation("User mail sent successfully.");
             }
             catch (Exception ex)
             {
-                log.LogInformation($"Error adding User to welcome group : {ex.Message}");
-                result = false;
+                _log.LogError($"SendMail error: {ex.Message}");
             }
-            return result;
+        }
+
+        private async Task<bool> AddUserToGroupsAsync(GraphServiceClient graphClient, List<string> userID, string welcomeGroupId, string gcxAssignedGroupId)
+        {
+            try
+            {
+                var reference = new ReferenceCreate
+                {
+                    OdataId = $"https://graph.microsoft.com/v1.0/directoryObjects/{userID[1]}"
+                };
+
+                await graphClient.Groups[gcxAssignedGroupId].Members.Ref.PostAsync(reference);
+                _log.LogInformation("User added to GCX_Assigned group.");
+
+                // Optional: Add to welcome group too
+                if (!string.IsNullOrEmpty(welcomeGroupId))
+                {
+                    await graphClient.Groups[welcomeGroupId].Members.Ref.PostAsync(reference);
+                    _log.LogInformation("User added to Welcome group.");
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _log.LogError($"Group membership error: {ex.Message}");
+                return false;
+            }
         }
     }
 }

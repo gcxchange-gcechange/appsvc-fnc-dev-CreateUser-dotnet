@@ -11,13 +11,11 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
     {
         private readonly IConfiguration _config;
         private readonly ILogger<SendEmailQueueTrigger> _log;
-        private readonly Auth _auth;
 
-        public SendEmailQueueTrigger(IConfiguration config, ILogger<SendEmailQueueTrigger> log, Auth auth)
+        public SendEmailQueueTrigger(IConfiguration config, ILogger<SendEmailQueueTrigger> log)
         {
             _config = config;
             _log = log;
-            _auth = auth;
         }
 
         [Function("SendEmailQueueTrigger")]
@@ -35,7 +33,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             string lastName = email.lastname;
             List<string> userID = email.userid;
 
-            var graphClient = _auth.GetGraphClient();
+            var graphClient = Auth.GetGraphClient(_log);
 
             await SendEmailAsync(graphClient, emailUser, userSender, firstName, lastName, redirectLink);
             await AddUserToGroupsAsync(graphClient, userID, welcomeGroup, gcxAssigned);

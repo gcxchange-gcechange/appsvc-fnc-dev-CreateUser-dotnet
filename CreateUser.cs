@@ -33,8 +33,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             string LastName = user.lastname;
             string RGCode = user.rgcode;
 
-            Auth auth = new Auth(_config, _log);
-            var graphAPIAuth = auth.GetGraphClient();
+            var graphAPIAuth = Auth.GetGraphClient(_log);
 
             _log.LogInformation($"Creating user {EmailCloud}");
             var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, redirectLink);

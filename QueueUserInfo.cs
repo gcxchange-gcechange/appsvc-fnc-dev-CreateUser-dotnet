@@ -14,13 +14,11 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
     {
         private readonly IConfiguration _config;
         private readonly ILogger<QueueUserInfo> _log;
-        private readonly Auth _auth;
 
-        public QueueUserInfo(IConfiguration config, ILogger<QueueUserInfo> log, Auth auth)
+        public QueueUserInfo(IConfiguration config, ILogger<QueueUserInfo> log)
         {
             _config = config;
             _log = log;
-            _auth = auth;
         }
 
         [Function("QueueUserInfo")]
@@ -63,7 +61,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 return badRequest;
             }
 
-            var graphClient = _auth.GetGraphClient();
+            var graphClient = Auth.GetGraphClient(_log);
 
             if (await CheckUserExists(graphClient, EmailWork))
             {

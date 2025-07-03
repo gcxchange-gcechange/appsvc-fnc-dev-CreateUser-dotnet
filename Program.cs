@@ -7,7 +7,7 @@ var host = new HostBuilder()
     .ConfigureServices(services =>
     {
         services.AddLogging();
-        services.AddSingleton<Auth>();
+        //services.AddSingleton<Auth>();
         services.AddScoped<QueueUserInfo>();
         services.AddScoped<SendEmailQueueTrigger>();
     })

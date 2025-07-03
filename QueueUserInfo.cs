@@ -1,195 +1,180 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Microsoft.WindowsAzure.Storage.Queue;
-using Microsoft.WindowsAzure.Storage;
+using System.Text;
+using System.Text.Json;
+using Azure.Storage.Queues;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
-using System.Collections.Generic;
+using Microsoft.Graph.Models;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
-    public static class QueueUserInfo
+    public class QueueUserInfo
     {
-        [FunctionName("QueueUserInfo")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.System, "get", "post", Route = null)] HttpRequest req, ILogger log)
+        private readonly IConfiguration _config;
+        private readonly ILogger<QueueUserInfo> _log;
+        private readonly Auth _auth;
+
+        public QueueUserInfo(IConfiguration config, ILogger<QueueUserInfo> log, Auth auth)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            _config = config;
+            _log = log;
+            _auth = auth;
+        }
 
-            IConfiguration config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
+        [Function("QueueUserInfo")]
+        public async Task<HttpResponseData> RunAsync(
+            [HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req,
+            FunctionContext context)
+        {
+            _log.LogInformation("Processing QueueUserInfo request");
 
-            string UserSender = config["userSender"];
-            string recipientAddress = config["recipientAddress"];
+            string UserSender = _config["userSender"];
+            string recipientAddress = _config["recipientAddress"];
             string ResponsQueue = "";
 
-            string EmailWork = req.Query["EmailWork"];
-            string EmailCloud = req.Query["EmailCloud"];
-            string FirstName = req.Query["FirstName"];
-            string LastName = req.Query["LastName"];
-            string Department = req.Query["Department"];
-            string B2B = req.Query["B2B"];
-            string RGCode = req.Query["RGCode"];
+            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            string EmailWork = query["EmailWork"];
+            string EmailCloud = query["EmailCloud"];
+            string FirstName = query["FirstName"];
+            string LastName = query["LastName"];
+            string Department = query["Department"];
+            string B2B = query["B2B"];
+            string RGCode = query["RGCode"];
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
+            string body = await new StreamReader(req.Body).ReadToEndAsync();
+            var data = JsonSerializer.Deserialize<UserInfo>(body);
 
-            EmailWork = EmailWork ?? data?.EmailWork;
-            EmailCloud = EmailCloud ?? data?.EmailCloud;
-            FirstName = FirstName ?? data?.FirstName;
-            LastName = LastName ?? data?.LastName;
-            Department = Department ?? data?.Department;
-            B2B = B2B ?? data?.B2B;
-            RGCode = RGCode ?? data?.RGCode;
+            EmailWork ??= data?.emailwork;
+            EmailCloud ??= data?.emailcloud;
+            FirstName ??= data?.firstname;
+            LastName ??= data?.lastname;
+            Department ??= data?.rgcode;
+            B2B ??= data?.rgcode;
+            RGCode ??= data?.rgcode;
 
-            log.LogInformation($"Start process with {EmailCloud}");
-            if (String.IsNullOrEmpty(EmailCloud) || String.IsNullOrEmpty(EmailWork) || String.IsNullOrEmpty(FirstName) || String.IsNullOrEmpty(LastName))
+            if (string.IsNullOrWhiteSpace(EmailCloud) || string.IsNullOrWhiteSpace(EmailWork)
+                || string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
             {
-                ResponsQueue = $"Missing field: {nameof(EmailCloud)}: {EmailCloud} - {nameof(EmailWork)}: {EmailWork} - {nameof(FirstName)}: {FirstName} - {nameof(LastName)}: {LastName}";
-                return new BadRequestObjectResult(ResponsQueue);
-            }
-            else
-            {
-                // Check if user exists
-                var userExists = await CheckUserExists(EmailWork, log);
-
-                if (userExists)
-                {
-                    ResponsQueue = $"{EmailWork} already registered";
-                    return new BadRequestObjectResult(ResponsQueue);
-                }
-                else
-                {
-                    // Check if department has been synced
-                    var isSynced = (B2B == "YES");
-
-                    if (isSynced)
-                    {
-                        sendEmail(recipientAddress, UserSender, EmailWork, Department, DateTime.Now, log);
-                        ResponsQueue = $"{Department} already synced. User email:{EmailWork}";
-                        return new BadRequestObjectResult(ResponsQueue);
-                    }
-                }
-
-                var connectionString = config["AzureWebJobsStorage"];
-                log.LogInformation($"Queue for {EmailCloud}");
-                CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
-                CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-                CloudQueue queue = queueClient.GetQueueReference("userrequestaccess");
-
-                ResponsQueue = InsertMessageAsync(queue, EmailCloud, EmailWork, FirstName, LastName, RGCode, log).GetAwaiter().GetResult();
-
-                if (String.Equals(ResponsQueue, "Queue create"))
-                {
-                    log.LogInformation("Response queue");
-                    return new OkObjectResult(ResponsQueue);
-                }
-                else
-                {
-                    log.LogInformation("Response queue error");
-                    return new BadRequestObjectResult(ResponsQueue);
-                }
-            }
-        }
-       
-        static async Task<string> InsertMessageAsync(CloudQueue theQueue, string emailcloud, string emailwork, string firstname, string lastname, string rgcode, ILogger log)
-        {
-            string response = "";
-            UserInfo info = new UserInfo();
-
-            info.emailcloud = emailcloud;
-            info.emailwork = emailwork;
-            info.firstname = firstname;
-            info.lastname = lastname;
-            info.rgcode = rgcode;
-
-            string serializedMessage = JsonConvert.SerializeObject(info);
-            if (await theQueue.CreateIfNotExistsAsync())
-            {
-                log.LogInformation("The queue was created.");
+                ResponsQueue = $"Missing field: {nameof(EmailCloud)}: {EmailCloud}, {nameof(EmailWork)}: {EmailWork}, {nameof(FirstName)}: {FirstName}, {nameof(LastName)}: {LastName}";
+                var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                await badRequest.WriteStringAsync(ResponsQueue);
+                return badRequest;
             }
 
-            CloudQueueMessage message = new CloudQueueMessage(serializedMessage);
-            try
-            {
-                log.LogInformation("create queue");
-                await theQueue.AddMessageAsync(message);
-                response = "Queue create";
-            }
-            catch(Exception ex)
-            {
-                log.LogInformation($"Error in the queue {ex}");
-                response = "Queue error";
+            var graphClient = _auth.GetGraphClient();
 
+            if (await CheckUserExists(graphClient, EmailWork))
+            {
+                ResponsQueue = $"{EmailWork} already registered";
+                var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                await badRequest.WriteStringAsync(ResponsQueue);
+                return badRequest;
             }
 
+            if (B2B == "YES")
+            {
+                await SendEmail(graphClient, recipientAddress, UserSender, EmailWork, Department, DateTime.UtcNow);
+                ResponsQueue = $"{Department} already synced. User email: {EmailWork}";
+                var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                await badRequest.WriteStringAsync(ResponsQueue);
+                return badRequest;
+            }
+
+            var queueClient = new QueueClient(_config["AzureWebJobsStorage"], "userrequestaccess");
+            ResponsQueue = await InsertMessageAsync(queueClient, EmailCloud, EmailWork, FirstName, LastName, RGCode);
+
+            var response = req.CreateResponse(
+                ResponsQueue == "Queue create" ? System.Net.HttpStatusCode.OK : System.Net.HttpStatusCode.BadRequest);
+
+            await response.WriteStringAsync(ResponsQueue);
             return response;
         }
 
-        static async Task<bool> CheckUserExists(string Email, ILogger log)
+        private async Task<string> InsertMessageAsync(QueueClient queueClient, string emailcloud, string emailwork, string firstname, string lastname, string rgcode)
         {
-            bool result = false;
-
-            Auth auth = new Auth();
-            var graphAPIAuth = auth.graphAuth(log);
-
-            var user = await graphAPIAuth.Users.Request().Filter($"mail eq '{Email.Replace("'", "''")}'").GetAsync();
-
-            if(user.Count > 0)
+            var userInfo = new UserInfo
             {
-                result = true;
-            }
+                emailcloud = emailcloud,
+                emailwork = emailwork,
+                firstname = firstname,
+                lastname = lastname,
+                rgcode = rgcode
+            };
 
-            return result;
+            string serializedMessage = JsonSerializer.Serialize(userInfo);
+            await queueClient.CreateIfNotExistsAsync();
+
+            try
+            {
+                var base64Message = Convert.ToBase64String(Encoding.UTF8.GetBytes(serializedMessage));
+                await queueClient.SendMessageAsync(base64Message);
+                _log.LogInformation("Message added to queue");
+                return "Queue create";
+            }
+            catch (Exception ex)
+            {
+                _log.LogError($"Queue error: {ex.Message}");
+                return "Queue error";
+            }
         }
 
-        public static async void sendEmail(string recipientAddress, string senderUserId, string userEmail, string userDept, DateTime incidentDate, ILogger log)
+        private async Task<bool> CheckUserExists(GraphServiceClient graphClient, string email)
         {
-            Auth auth = new Auth();
-            var graphAPIAuth = auth.graphAuth(log);
+            try
+            {
+                var result = await graphClient.Users
+                    .GetAsync(requestConfig =>
+                    {
+                        requestConfig.QueryParameters.Filter = $"mail eq '{email.Replace("'", "''")}'";
+                    });
 
-            var format = "yyyy-MM-dd hh:mm:ss tt";
+                return result?.Value?.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                _log.LogError($"Graph check error: {ex.Message}");
+                return false;
+            }
+        }
 
-            var submitMsg = new Message
+        private async Task SendEmail(GraphServiceClient graphClient, string recipientAddress, string senderUserId, string userEmail, string userDept, DateTime incidentDate)
+        {
+            var message = new Message
             {
                 Subject = "GCX - Registration attempt from synced department",
-
                 Body = new ItemBody
                 {
                     ContentType = BodyType.Html,
                     Content = @$"<p>The following user from a synced department attempted to register for GCX:</p>
-                                 Date: {incidentDate.ToString(format)}<br />
-                                 User email: {userEmail}<br />
-                                 User department: {userDept}<br />"
+                                Date: {incidentDate:yyyy-MM-dd hh:mm:ss tt}<br />
+                                User email: {userEmail}<br />
+                                User department: {userDept}<br />"
                 },
-                ToRecipients = new List<Recipient>()
+                ToRecipients = new List<Recipient>
                 {
                     new Recipient
                     {
                         EmailAddress = new EmailAddress
                         {
-                           Address = $"{recipientAddress}"
+                            Address = recipientAddress
                         }
                     }
-                },
+                }
             };
 
             try
             {
-                await graphAPIAuth.Users[senderUserId].SendMail(submitMsg).Request().PostAsync();
-
+                await graphClient.Users[senderUserId].SendMail.PostAsync(new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
+                {
+                    Message = message,
+                    SaveToSentItems = false
+                });
             }
-            catch (ServiceException e)
+            catch (Exception ex)
             {
-                log.LogInformation($"Error: {e.Message}");
+                _log.LogError($"SendMail failed: {ex.Message}");
             }
         }
     }

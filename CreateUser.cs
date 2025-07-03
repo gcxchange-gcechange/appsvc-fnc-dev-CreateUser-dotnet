@@ -1,169 +1,145 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs;
+﻿using Azure.Storage.Queues;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Queue;
+using Microsoft.Graph.Models;
 using Newtonsoft.Json;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
-    public static class CreateUser
+    public class CreateUser
     {
-        [FunctionName("CreateUser")]
-        public static async Task RunAsync(
-            [QueueTrigger("UserRequestAccess")] UserInfo user,
-            ILogger log)
+        private readonly IConfiguration _config;
+        private readonly ILogger _log;
+
+        public CreateUser(IConfiguration config, ILogger<CreateUser> log)
         {
-            
-            log.LogInformation("C# HTTP trigger function processed a request.");
-            IConfiguration config = new ConfigurationBuilder()
+            _config = config;
+            _log = log;
+        }
 
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
+        [Function("CreateUser")]
+        public async Task RunAsync(
+            [QueueTrigger("UserRequestAccess")] UserInfo user,
+            FunctionContext context)
+        {
+            _log.LogInformation("Processing user creation request.");
 
-            string redirectLink = config["redirectLink"];
+            string redirectLink = _config["redirectLink"];
             string EmailWork = user.emailwork;
             string EmailCloud = user.emailcloud;
             string FirstName = user.firstname;
             string LastName = user.lastname;
             string RGCode = user.rgcode;
 
-            Auth auth = new Auth();
-            var graphAPIAuth = auth.graphAuth(log);
+            Auth auth = new Auth(_config, _log);
+            var graphAPIAuth = auth.GetGraphClient();
 
-            log.LogInformation($"Create user {EmailCloud}");
-            var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, redirectLink, log);
+            _log.LogInformation($"Creating user {EmailCloud}");
+            var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, redirectLink);
 
-            if (String.Equals(createUser[0], "Invitation error"))
+            if (string.Equals(createUser[0], "Invitation error"))
+                throw new Exception(createUser[0]);
+
+            bool userUpdated = await UpdateUser(graphAPIAuth, createUser, RGCode, FirstName, LastName);
+            if (!userUpdated)
+                throw new Exception("Error in user update");
+
+
+            string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
+            string connectionString = _config["AzureWebJobsStorage"];
+
+            var queueClient = new QueueClient(connectionString, "sendemail");
+            string queueResult = await AddQueueEmail(queueClient, EmailUser, FirstName, LastName, createUser);
+
+            if (queueResult == "Queue create")
             {
-                 throw new SystemException(createUser[0]);
+                _log.LogInformation("Message added to response queue.");
             }
             else
             {
-                var userupdate = await updateUser(graphAPIAuth, createUser, RGCode, FirstName, LastName, log);
-                if (userupdate)
-                {
-                    string EmailUser = String.Equals(EmailCloud, EmailWork) ? EmailCloud : EmailWork;
-                    string ResponsQueue = "";
-
-                    var connectionString = config["AzureWebJobsStorage"];
-
-                    CloudStorageAccount storageAccount = CloudStorageAccount.Parse(connectionString);
-                    CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-                    CloudQueue queue = queueClient.GetQueueReference("sendemail");
-                     
-                    ResponsQueue = AddQueueEmail(queue, EmailUser, FirstName, LastName, createUser, log).GetAwaiter().GetResult();
-
-                    if (String.Equals(ResponsQueue, "Queue create"))
-                    {
-                        log.LogInformation("Response queue");
-                    }
-                    else
-                    {
-                    log.LogInformation("Response queue error");
-                        throw new SystemException(ResponsQueue);
-                    }
-                }
-                else
-                {
-                    throw new SystemException("Error in user update");
-                }
+                _log.LogError("Failed to queue response.");
+                throw new Exception(queueResult);
             }
         }
 
-        public static async Task<List<string>> UserCreation(GraphServiceClient graphServiceClient, string emailcloud, string firstname, string lastname, string redirectLink, ILogger log)
+        private async Task<List<string>> UserCreation(GraphServiceClient graphServiceClient, string emailcloud, string firstname, string lastname, string redirectLink)
         {
-            List<string> InviteInfo = new List<string>();
-
-                try
+            var inviteInfo = new List<string>();
+            try
+            {
+                var invitation = new Invitation
                 {
-                    var invitation = new Invitation
-                    {
-                        SendInvitationMessage = false,
-                        InvitedUserEmailAddress = emailcloud,
-                        InvitedUserType = "Member",
-                        InviteRedirectUrl = redirectLink,
-                        InvitedUserDisplayName = $"{firstname} {lastname}",
-                    };
-
-                    var userInvite = await graphServiceClient.Invitations.Request().AddAsync(invitation);
-                    InviteInfo.Add("Invitation success");
-                    InviteInfo.Add(userInvite.InvitedUser.Id);
-                    InviteInfo.Add(userInvite.InviteRedeemUrl);
-
-                    log.LogInformation(@"User invite successfully - {userInvite.InvitedUser.Id}");
-                }
-                catch (ServiceException ex)
-                {
-                    log.LogInformation($"Error Creating User Invite : {ex.Message}");
-                    InviteInfo.Add("Invitation error");
+                    SendInvitationMessage = false,
+                    InvitedUserEmailAddress = emailcloud,
+                    InvitedUserType = "Member",
+                    InviteRedirectUrl = redirectLink,
+                    InvitedUserDisplayName = $"{firstname} {lastname}",
                 };
 
-            return InviteInfo;
+                var userInvite = await graphServiceClient.Invitations.PostAsync(invitation);
+
+                inviteInfo.Add("Invitation success");
+                inviteInfo.Add(userInvite.InvitedUser.Id);
+                inviteInfo.Add(userInvite.InviteRedeemUrl);
+
+                _log.LogInformation($"User invited successfully - {userInvite.InvitedUser.Id}");
+            }
+            catch (ServiceException ex)
+            {
+                _log.LogError($"Error creating user invite: {ex.Message}");
+                inviteInfo.Add("Invitation error");
+            }
+
+            return inviteInfo;
         }
 
-        public static async Task<bool> updateUser(GraphServiceClient graphServiceClient, List<string> userID, string RGCode, string firstName, string lastName, ILogger log)
+        private async Task<bool> UpdateUser(GraphServiceClient graphServiceClient, List<string> userID, string rgCode, string firstName, string lastName)
         {
-            bool result = false;
             try
             {
                 var guestUser = new User
                 {
-                    Department = RGCode,
+                    Department = rgCode,
                     UserType = "Member"
                 };
 
-                await graphServiceClient.Users[userID[1]].Request().UpdateAsync(guestUser);
-                log.LogInformation("User update successfully");
-
-                result = true;
+                await graphServiceClient.Users[userID[1]].PatchAsync(guestUser);
+                _log.LogInformation("User updated successfully");
+                return true;
             }
             catch (Exception ex)
             {
-                log.LogInformation($"Error Updating User : {ex.Message}");
-                result = false;
+                _log.LogError($"Error updating user: {ex.Message}");
+                return false;
             }
-            return result;
         }
 
-        static async Task<string> AddQueueEmail(CloudQueue theQueue,  string EmailUser, string FirstName, string LastName, List<string> userID, ILogger log)
+        private async Task<string> AddQueueEmail(QueueClient queueClient, string emailUser, string firstName, string lastName, List<string> userID)
         {
-            string response = "";
-            UserEmail email = new UserEmail();
-
-            email.emailUser = EmailUser;
-            email.firstname = FirstName;
-            email.lastname = LastName;
-            email.userid = userID;
-
-            string serializedMessage = JsonConvert.SerializeObject(email);
-            if (await theQueue.CreateIfNotExistsAsync())
-            {
-                log.LogInformation("The queue was created.");
-            }
-
-            CloudQueueMessage message = new CloudQueueMessage(serializedMessage);
             try
             {
-                log.LogInformation("create queue");
+                await queueClient.CreateIfNotExistsAsync();
+                var email = new UserEmail
+                {
+                    emailUser = emailUser,
+                    firstname = firstName,
+                    lastname = lastName,
+                    userid = userID
+                };
 
-                theQueue.AddMessage(message, initialVisibilityDelay: TimeSpan.FromMinutes(5));
-                response = "Queue create";
+                string message = JsonConvert.SerializeObject(email);
+                await queueClient.SendMessageAsync(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(message)),
+                                                   visibilityTimeout: TimeSpan.FromMinutes(5));
+
+                return "Queue create";
             }
             catch (Exception ex)
             {
-                log.LogInformation($"Error in the queue {ex}");
-                response = "Queue error";
-
+                _log.LogError($"Error adding message to queue: {ex}");
+                return "Queue error";
             }
-
-            return response;
-
         }
     }
 }

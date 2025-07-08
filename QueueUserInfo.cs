@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using System.Text.Json;
 using Azure.Storage.Queues;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -8,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Newtonsoft.Json;
 
 namespace appsvc_fnc_dev_CreateUser_dotnet
 {
@@ -35,25 +35,24 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 string recipientAddress = _config["recipientAddress"];
                 string ResponsQueue = "";
 
-                var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-                string EmailWork = query["EmailWork"];
-                string EmailCloud = query["EmailCloud"];
-                string FirstName = query["FirstName"];
-                string LastName = query["LastName"];
-                string Department = query["Department"];
-                string B2B = query["B2B"];
-                string RGCode = query["RGCode"];
+                string EmailWork = req.Query["EmailWork"];
+                string EmailCloud = req.Query["EmailCloud"];
+                string FirstName = req.Query["FirstName"];
+                string LastName = req.Query["LastName"];
+                string Department = req.Query["Department"];
+                string B2B = req.Query["B2B"];
+                string RGCode = req.Query["RGCode"];
 
-                string body = await new StreamReader(req.Body).ReadToEndAsync();
-                var data = JsonSerializer.Deserialize<UserInfo>(body);
+                string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+                dynamic data = JsonConvert.DeserializeObject(requestBody);
 
-                EmailWork ??= data?.emailwork;
-                EmailCloud ??= data?.emailcloud;
-                FirstName ??= data?.firstname;
-                LastName ??= data?.lastname;
-                Department ??= data?.rgcode;
-                B2B ??= data?.rgcode;
-                RGCode ??= data?.rgcode;
+                EmailWork = EmailWork ?? data?.EmailWork;
+                EmailCloud = EmailCloud ?? data?.EmailCloud;
+                FirstName = FirstName ?? data?.FirstName;
+                LastName = LastName ?? data?.LastName;
+                Department = Department ?? data?.Department;
+                B2B = B2B ?? data?.B2B;
+                RGCode = RGCode ?? data?.RGCode;
 
                 if (string.IsNullOrWhiteSpace(EmailCloud) || string.IsNullOrWhiteSpace(EmailWork)
                     || string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
@@ -116,7 +115,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
                 rgcode = rgcode
             };
 
-            string serializedMessage = JsonSerializer.Serialize(userInfo);
+            string serializedMessage = System.Text.Json.JsonSerializer.Serialize(userInfo);
             await queueClient.CreateIfNotExistsAsync();
 
             try

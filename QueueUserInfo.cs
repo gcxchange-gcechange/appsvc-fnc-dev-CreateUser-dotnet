@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Azure.Storage.Queues;
@@ -26,68 +27,82 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             [HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req,
             FunctionContext context)
         {
-            _log.LogInformation("Processing QueueUserInfo request");
-
-            string UserSender = _config["delegatedUserName"];
-            string recipientAddress = _config["recipientAddress"];
-            string ResponsQueue = "";
-
-            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-            string EmailWork = query["EmailWork"];
-            string EmailCloud = query["EmailCloud"];
-            string FirstName = query["FirstName"];
-            string LastName = query["LastName"];
-            string Department = query["Department"];
-            string B2B = query["B2B"];
-            string RGCode = query["RGCode"];
-
-            string body = await new StreamReader(req.Body).ReadToEndAsync();
-            var data = JsonSerializer.Deserialize<UserInfo>(body);
-
-            EmailWork ??= data?.emailwork;
-            EmailCloud ??= data?.emailcloud;
-            FirstName ??= data?.firstname;
-            LastName ??= data?.lastname;
-            Department ??= data?.rgcode;
-            B2B ??= data?.rgcode;
-            RGCode ??= data?.rgcode;
-
-            if (string.IsNullOrWhiteSpace(EmailCloud) || string.IsNullOrWhiteSpace(EmailWork)
-                || string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
+            try
             {
-                ResponsQueue = $"Missing field: {nameof(EmailCloud)}: {EmailCloud}, {nameof(EmailWork)}: {EmailWork}, {nameof(FirstName)}: {FirstName}, {nameof(LastName)}: {LastName}";
-                var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync(ResponsQueue);
-                return badRequest;
+                _log.LogInformation("Processing QueueUserInfo request");
+
+                string UserSender = _config["delegatedUserName"];
+                string recipientAddress = _config["recipientAddress"];
+                string ResponsQueue = "";
+
+                var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+                string EmailWork = query["EmailWork"];
+                string EmailCloud = query["EmailCloud"];
+                string FirstName = query["FirstName"];
+                string LastName = query["LastName"];
+                string Department = query["Department"];
+                string B2B = query["B2B"];
+                string RGCode = query["RGCode"];
+
+                string body = await new StreamReader(req.Body).ReadToEndAsync();
+                var data = JsonSerializer.Deserialize<UserInfo>(body);
+
+                EmailWork ??= data?.emailwork;
+                EmailCloud ??= data?.emailcloud;
+                FirstName ??= data?.firstname;
+                LastName ??= data?.lastname;
+                Department ??= data?.rgcode;
+                B2B ??= data?.rgcode;
+                RGCode ??= data?.rgcode;
+
+                if (string.IsNullOrWhiteSpace(EmailCloud) || string.IsNullOrWhiteSpace(EmailWork)
+                    || string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
+                {
+                    ResponsQueue = $"Missing field: {nameof(EmailCloud)}: {EmailCloud}, {nameof(EmailWork)}: {EmailWork}, {nameof(FirstName)}: {FirstName}, {nameof(LastName)}: {LastName}";
+                    var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                    await badRequest.WriteStringAsync(ResponsQueue);
+                    return badRequest;
+                }
+
+                var graphClient = Auth.GetGraphClient(_log);
+
+                if (await CheckUserExists(graphClient, EmailWork))
+                {
+                    ResponsQueue = $"{EmailWork} already registered";
+                    var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                    await badRequest.WriteStringAsync(ResponsQueue);
+                    return badRequest;
+                }
+
+                if (B2B == "YES")
+                {
+                    await SendEmail(graphClient, recipientAddress, UserSender, EmailWork, Department, DateTime.UtcNow);
+                    ResponsQueue = $"{Department} already synced. User email: {EmailWork}";
+                    var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                    await badRequest.WriteStringAsync(ResponsQueue);
+                    return badRequest;
+                }
+
+                var queueClient = new QueueClient(_config["AzureWebJobsStorage"], "userrequestaccess");
+                ResponsQueue = await InsertMessageAsync(queueClient, EmailCloud, EmailWork, FirstName, LastName, RGCode);
+
+                var response = req.CreateResponse(
+                    ResponsQueue == "Queue create" ? System.Net.HttpStatusCode.OK : System.Net.HttpStatusCode.BadRequest);
+
+                await response.WriteStringAsync(ResponsQueue);
+                return response;
             }
-
-            var graphClient = Auth.GetGraphClient(_log);
-
-            if (await CheckUserExists(graphClient, EmailWork))
+            catch (Exception ex)
             {
-                ResponsQueue = $"{EmailWork} already registered";
-                var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync(ResponsQueue);
-                return badRequest;
+                _log.LogError(ex.Message);
+                _log.LogError(ex.InnerException?.Message);
+                _log.LogError(ex.StackTrace);
+
+                var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+                await badResponse.WriteStringAsync(ex.Message);
+                return badResponse;
             }
-
-            if (B2B == "YES")
-            {
-                await SendEmail(graphClient, recipientAddress, UserSender, EmailWork, Department, DateTime.UtcNow);
-                ResponsQueue = $"{Department} already synced. User email: {EmailWork}";
-                var badRequest = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync(ResponsQueue);
-                return badRequest;
-            }
-
-            var queueClient = new QueueClient(_config["AzureWebJobsStorage"], "userrequestaccess");
-            ResponsQueue = await InsertMessageAsync(queueClient, EmailCloud, EmailWork, FirstName, LastName, RGCode);
-
-            var response = req.CreateResponse(
-                ResponsQueue == "Queue create" ? System.Net.HttpStatusCode.OK : System.Net.HttpStatusCode.BadRequest);
-
-            await response.WriteStringAsync(ResponsQueue);
-            return response;
+            
         }
 
         private async Task<string> InsertMessageAsync(QueueClient queueClient, string emailcloud, string emailwork, string firstname, string lastname, string rgcode)

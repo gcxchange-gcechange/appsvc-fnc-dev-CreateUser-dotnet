@@ -23,7 +23,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
         {
             _log.LogInformation("SendEmailQueueTrigger started");
 
-            string userSender = _config["userSender"];
+            string userSender = _config["delegatedUserName"];
             string redirectLink = _config["redirectLink"];
             string welcomeGroup = _config["welcomeGroup"];
             string gcxAssigned = _config["gcxAssigned"];

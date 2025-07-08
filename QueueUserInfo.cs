@@ -28,7 +28,7 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
         {
             _log.LogInformation("Processing QueueUserInfo request");
 
-            string UserSender = _config["userSender"];
+            string UserSender = _config["delegatedUserName"];
             string recipientAddress = _config["recipientAddress"];
             string ResponsQueue = "";
 

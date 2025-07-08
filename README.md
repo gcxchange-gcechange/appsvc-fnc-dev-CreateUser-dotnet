@@ -19,6 +19,6 @@ secretId = App configuration client secret<br>
 tenantId = Tenant id<br>
 welcomeGroup = Id of the group<br>
 redirectLink = Link that redirect the user when click on the link (Teams for us)<br>
-delegatedUserName = the email address of the delegated user for graph calls/sending email<br>
-delegatedUserSecret = the secret name in the key vault which contains the password for the delegatedUserName user<br>
+delegatedUserName = Email address of the delegated user for sending email<br>
+recipientAddress = Email address where failed registration attempts will be logged<br>
 

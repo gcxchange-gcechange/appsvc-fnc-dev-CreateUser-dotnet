@@ -33,15 +33,16 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             string LastName = user.lastname;
             string RGCode = user.rgcode;
 
-            var graphAPIAuth = Auth.GetGraphClient(_log);
+            var graphAPIAuth_Delegated = Auth.GetGraphClient(_log);
+            var graphAPIAuth_Application = Auth.GetGraphClientApp(_log);
 
             _log.LogInformation($"Creating user {EmailCloud}");
-            var createUser = await UserCreation(graphAPIAuth, EmailCloud, FirstName, LastName, redirectLink);
+            var createUser = await UserCreation(graphAPIAuth_Application, EmailCloud, FirstName, LastName, redirectLink);
 
             if (string.Equals(createUser[0], "Invitation error"))
                 throw new Exception(createUser[0]);
 
-            bool userUpdated = await UpdateUser(graphAPIAuth, createUser, RGCode, FirstName, LastName);
+            bool userUpdated = await UpdateUser(graphAPIAuth_Delegated, createUser, RGCode, FirstName, LastName);
             if (!userUpdated)
                 throw new Exception("Error in user update");
 

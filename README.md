@@ -14,10 +14,8 @@ Step6. Send email to the user with redeem link from step 3.<br>
 
 # Permissions
 
-GroupMember.ReadWrite.All - Delegated<br>
 Mail.Send - Delegated<br>
 User.Invite.All - Application<br>
-User.Read - Delegated<br>
 User.ReadWrite.All - Delegated<br>
 
 ## Required setting

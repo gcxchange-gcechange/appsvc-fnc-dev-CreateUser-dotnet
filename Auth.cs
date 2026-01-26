@@ -16,6 +16,41 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
             return new GraphServiceClient(auth);
         }
 
+        public static GraphServiceClient GetGraphClientApp(ILogger log)
+        {
+            IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).AddEnvironmentVariables().Build();
+
+            var keyVaultUrl = config["keyVaultUrl"];
+
+            SecretClientOptions options = new SecretClientOptions()
+            {
+                Retry = 
+                {
+                    Delay= TimeSpan.FromSeconds(2),
+                    MaxDelay = TimeSpan.FromSeconds(16),
+                    MaxRetries = 5,
+                    Mode = RetryMode.Exponential
+                }
+            };
+
+            var client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential(), options);
+            var clientSecretName = config["secretName"]; 
+
+            KeyVaultSecret secret = client.GetSecret(clientSecretName);
+
+            var clientSecret = secret.Value;
+            var tenantId = config["tenantId"];
+            var clientId = config["clientId"];
+
+            var credential = new ClientSecretCredential(
+                tenantId,
+                clientId,
+                clientSecret
+            );
+
+            return new GraphServiceClient(credential);
+        }
+
         public class ROPCConfidentialTokenCredential : Azure.Core.TokenCredential
         {
             string _clientId;

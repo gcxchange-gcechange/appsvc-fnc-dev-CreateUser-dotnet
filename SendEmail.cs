@@ -73,8 +73,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						<br>
 						On the Teams side of GCXchange you can engage with the communities you have joined, as well as co-autho documents and chat with colleagues in other departments and agencies. To learn how to switch between your departmental and GCXchange MS Teams accounts <a href='https://www.youtube.com/watch?v=71bULf1UqGw&list=PLWhPHFzdUwX98NKbSG8kyq5eW9waj3nNq&index=8'>watch a video tutorial</a> or <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/FAQ.aspx'>access the step-by-step guidance</a>.
 						<br><br>
-                        We want to hear from you! Please take a few minutes to respond to our <a href='https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fquestionnaire.simplesurvey.com%2Ff%2Fl%2Fgcxchange-gcechange%3Fidlang%3DEN&data=05%7C01%7CJordana.Globerman%40tbs-sct.gc.ca%7C4e8c64422cfe447268d508da38fb0ae7%7C6397df10459540479c4f03311282152b%7C0%7C0%7C637884948107280711%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=Zk8xT7DoGA2pt48hYvplYfaTKWpY%2BjqJ7%2B60REgj3rE%3D&reserved=0'>survey</a> about the registration process.
-                        <br><br>
 						If you run into a problem or have a question, contact: <a href='mailto:support-soutien@gcx-gce.gc.ca'>support-soutien@gcx-gce.gc.ca</a>
 						<br><br>
 						Happy collaborating!
@@ -103,8 +101,6 @@ namespace appsvc_fnc_dev_CreateUser_dotnet
 						<br>
 						Du côté Teams de GCÉchange, vous pouvez communiquer avec les collectivités desquelles vous êtes membre, corédiger des documents et clavarder avec des collègues d’autres ministères et organismes. Pour savoir comment passer d’un compte ministériel à un compte GCÉchange dans Teams, <a href='https://gcxgce.sharepoint.com/sites/Support/SitePages/fr/FAQ.aspx'>regardez un tutoriel vidéo ou accédez aux directives étape par étape.</a>
 						<br><br>
-                        Nous souhaitons connaître votre opinion! Veuillez prendre quelques minutes pour répondre à notre <a href='https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fquestionnaire.simplesurvey.com%2Ff%2Fl%2Fgcxchange-gcechange%3Fidlang%3DEN&data=05%7C01%7CJordana.Globerman%40tbs-sct.gc.ca%7C4e8c64422cfe447268d508da38fb0ae7%7C6397df10459540479c4f03311282152b%7C0%7C0%7C637884948107280711%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=Zk8xT7DoGA2pt48hYvplYfaTKWpY%2BjqJ7%2B60REgj3rE%3D&reserved=0'>sondage</a> sur le processus d’inscription.
-                        <br><br>
 						Si vous avez un problème ou une question, écrivez à : <a href='mailto:support-soutien@gcx-gce.gc.ca'>support-soutien@gcx-gce.gc.ca</a>.
 						<br><br>
 						Bonne collaboration!
